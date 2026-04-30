@@ -1,0 +1,218 @@
+.main {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 32px 48px 96px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.topBar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 4px;
+}
+
+.backLink {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--foreground-muted);
+  font-size: 13px;
+  transition: color 120ms ease;
+}
+
+.backLink:hover {
+  color: var(--foreground);
+}
+
+.header {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.eyebrow {
+  letter-spacing: 0.18em;
+  font-size: 11px;
+  color: var(--foreground-muted);
+}
+
+.title {
+  font-size: 56px;
+  font-weight: 800;
+  letter-spacing: -0.025em;
+  line-height: 1;
+  margin: 0;
+}
+
+.meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  color: var(--foreground-muted);
+  font-size: 14px;
+}
+
+.metaLink {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--foreground);
+  text-decoration: none;
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 1px;
+  transition: border-color 120ms ease;
+}
+
+.metaLink:hover {
+  border-color: var(--foreground);
+}
+
+/* ---------- Cards ---------- */
+
+.notesCard,
+.summaryCard {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 24px 28px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  width: 100%;
+}
+
+.cardTitle {
+  font-size: 12px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--foreground-muted);
+  margin: 0;
+  font-weight: 600;
+}
+
+.notesText {
+  margin: 0;
+  font-size: 15px;
+  line-height: 1.6;
+  color: var(--foreground);
+  white-space: pre-wrap;
+}
+
+.summary {
+  margin: 0;
+  font-size: 16px;
+  line-height: 1.65;
+  color: var(--foreground);
+  white-space: pre-wrap;
+}
+
+/* ---------- Researching state ---------- */
+
+.researching {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 22px 26px;
+}
+
+.researching p {
+  margin: 6px 0 0;
+  color: var(--foreground-muted);
+  font-size: 14px;
+}
+
+.spinner {
+  color: var(--accent);
+  flex: 0 0 auto;
+  margin-top: 2px;
+  animation: spin 800ms linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* ---------- Error ---------- */
+
+.errorBox {
+  background: #ffe2e2;
+  border: 1px solid #f3b9b9;
+  color: #6b0000;
+  padding: 16px 20px;
+  border-radius: var(--radius);
+}
+
+.errorMessage {
+  margin: 6px 0 0;
+  font-size: 13px;
+  font-family: var(--font-mono);
+}
+
+/* ---------- Skeletons ---------- */
+
+.skeletonStack {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.skelEyebrow,
+.skelTitle,
+.skelMeta,
+.skelBlock,
+.skelBlockTall,
+.skelLine {
+  background: linear-gradient(
+    90deg,
+    var(--surface-muted) 0%,
+    #efefec 50%,
+    var(--surface-muted) 100%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.4s ease-in-out infinite;
+  border-radius: 8px;
+}
+
+.skelEyebrow {
+  width: 90px;
+  height: 11px;
+}
+
+.skelTitle {
+  width: 60%;
+  height: 56px;
+  border-radius: 12px;
+}
+
+.skelMeta {
+  width: 240px;
+  height: 14px;
+}
+
+.skelBlock {
+  width: 100%;
+  height: 100px;
+  border-radius: var(--radius-lg);
+}
+
+.skelBlockTall {
+  width: 100%;
+  height: 200px;
+  border-radius: var(--radius-lg);
+}
+
+.skelLine {
+  height: 14px;
+  width: 100%;
+}
+
+@keyframes shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}

@@ -1,0 +1,68 @@
+.wrap {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.th {
+  text-align: left;
+  font-weight: 500;
+  font-size: 11px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--foreground-muted);
+  padding: 16px 24px;
+  background: var(--surface-muted);
+  border-bottom: 1px solid var(--border);
+}
+
+.row {
+  cursor: pointer;
+  transition: background 120ms ease;
+}
+
+.row:hover {
+  background: var(--surface-muted);
+}
+
+.row + .row .td {
+  border-top: 1px solid var(--border);
+}
+
+.td {
+  padding: 22px 24px;
+  font-size: 14px;
+  color: var(--foreground);
+  vertical-align: middle;
+}
+
+.companyCell {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.companyName {
+  font-weight: 600;
+  font-size: 15px;
+}
+
+.companyContact {
+  color: var(--foreground-muted);
+  font-size: 13px;
+}
+
+.arrow {
+  color: var(--foreground-muted);
+  font-size: 18px;
+}
+
+.muted {
+  color: var(--foreground-subtle);
+}
