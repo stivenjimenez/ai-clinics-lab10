@@ -1,3 +1,5 @@
+import { Circle } from "lucide-react";
+
 import styles from "./status-badge.module.css";
 import type { ResearchStatus } from "@/lib/types";
 
@@ -36,7 +38,9 @@ export function StatusBadge({ status }: { status: ResearchStatus | DerivedStatus
   const variant = VARIANT[key] ?? styles.neutral;
   return (
     <span className={`${styles.badge} ${variant}`}>
-      {key === "session_in_progress" && <span className={styles.dot} aria-hidden />}
+      {key === "session_in_progress" && (
+        <Circle className={styles.dot} size={8} strokeWidth={0} fill="currentColor" aria-hidden />
+      )}
       {label}
     </span>
   );

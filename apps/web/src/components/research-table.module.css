@@ -59,8 +59,9 @@
 }
 
 .arrow {
+  display: inline-flex;
+  align-items: center;
   color: var(--foreground-muted);
-  font-size: 18px;
 }
 
 .muted {

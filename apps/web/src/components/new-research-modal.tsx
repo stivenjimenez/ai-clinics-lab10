@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
+import { ArrowRight } from "lucide-react";
 
 import {
   newResearchSchema,
@@ -176,7 +177,14 @@ export function NewResearchModal({ open, onClose }: Props) {
               className={styles.submit}
               disabled={isSubmitting}
             >
-              {isSubmitting ? "Creando…" : "Investigar empresa →"}
+              {isSubmitting ? (
+                "Creando…"
+              ) : (
+                <>
+                  Investigar empresa
+                  <ArrowRight size={14} strokeWidth={2.25} aria-hidden />
+                </>
+              )}
             </button>
           </div>
         </form>

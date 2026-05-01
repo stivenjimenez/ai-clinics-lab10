@@ -8,6 +8,7 @@ import {
   getCoreRowModel,
   useReactTable,
 } from "@tanstack/react-table";
+import { ChevronRight } from "lucide-react";
 
 import { StatusBadge } from "./status-badge";
 import styles from "./research-table.module.css";
@@ -64,7 +65,11 @@ export function ResearchTable({ data }: { data: Research[] }) {
       {
         id: "go",
         header: "",
-        cell: () => <span className={styles.arrow} aria-hidden>→</span>,
+        cell: () => (
+          <span className={styles.arrow} aria-hidden>
+            <ChevronRight size={16} strokeWidth={2.25} />
+          </span>
+        ),
       },
     ],
     [],
