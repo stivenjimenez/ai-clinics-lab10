@@ -1,4 +1,5 @@
 import logging
+from datetime import datetime, timezone
 from typing import Literal
 
 from fastapi import BackgroundTasks, FastAPI, HTTPException, Query
@@ -32,6 +33,15 @@ class ResearchCreate(BaseModel):
     website: str | None = None
     linkedin: str | None = None
     notes: str | None = None
+
+
+class AnswerInput(BaseModel):
+    question_id: str = Field(min_length=1, max_length=80)
+    answer_text: str = Field(min_length=1)
+
+
+class AnswersUpsert(BaseModel):
+    answers: list[AnswerInput]
 
 
 # ---------- Background work ----------
@@ -117,3 +127,81 @@ async def create_research(payload: ResearchCreate, background: BackgroundTasks):
     row = insert.data[0]
     background.add_task(_run_research, row["id"], payload)
     return row
+
+
+# ---------- Sessions ----------
+
+def _session_for_research(research_id: str) -> dict:
+    res = (
+        supabase.table("sessions")
+        .select("*")
+        .eq("research_id", research_id)
+        .order("created_at", desc=True)
+        .limit(1)
+        .execute()
+    )
+    if not res.data:
+        raise HTTPException(status_code=404, detail="session not found for research")
+    return res.data[0]
+
+
+@app.get("/research/{research_id}/session")
+def get_session_for_research(research_id: str):
+    return _session_for_research(research_id)
+
+
+@app.get("/sessions/{session_id}/answers")
+def list_answers(session_id: str):
+    res = (
+        supabase.table("form_answers")
+        .select("question_id, answer_text, updated_at")
+        .eq("session_id", session_id)
+        .execute()
+    )
+    return res.data
+
+
+@app.put("/sessions/{session_id}/answers")
+def upsert_answers(session_id: str, payload: AnswersUpsert):
+    session_res = (
+        supabase.table("sessions")
+        .select("id, status, started_at")
+        .eq("id", session_id)
+        .maybe_single()
+        .execute()
+    )
+    if not session_res.data:
+        raise HTTPException(status_code=404, detail="session not found")
+    session = session_res.data
+
+    if not payload.answers:
+        return {"answers": [], "session": session}
+
+    rows = [
+        {
+            "session_id": session_id,
+            "question_id": a.question_id,
+            "answer_text": a.answer_text,
+        }
+        for a in payload.answers
+    ]
+    upserted = (
+        supabase.table("form_answers")
+        .upsert(rows, on_conflict="session_id,question_id")
+        .execute()
+    )
+
+    if session["status"] == "draft":
+        update = {"status": "in_progress"}
+        if not session.get("started_at"):
+            update["started_at"] = datetime.now(timezone.utc).isoformat()
+        updated = (
+            supabase.table("sessions")
+            .update(update)
+            .eq("id", session_id)
+            .execute()
+        )
+        if updated.data:
+            session = updated.data[0]
+
+    return {"answers": upserted.data, "session": session}

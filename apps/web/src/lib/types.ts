@@ -16,3 +16,25 @@ export type Research = {
   created_at: string;
   updated_at: string;
 };
+
+export type SessionStatus =
+  | "draft"
+  | "in_progress"
+  | "completed"
+  | "abandoned";
+
+export type Session = {
+  id: string;
+  research_id: string;
+  status: SessionStatus;
+  started_at: string | null;
+  completed_at: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+export type FormAnswer = {
+  question_id: string;
+  answer_text: string;
+  updated_at: string;
+};

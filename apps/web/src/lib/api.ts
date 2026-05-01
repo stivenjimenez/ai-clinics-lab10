@@ -1,6 +1,11 @@
 import useSWR, { mutate as globalMutate } from "swr";
 
-import type { Research, ResearchStatus } from "./types";
+import type {
+  FormAnswer,
+  Research,
+  ResearchStatus,
+  Session,
+} from "./types";
 
 export const API_URL =
   process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
@@ -95,6 +100,58 @@ export async function createResearch(
     { revalidate: true },
   );
   return created;
+}
+
+// ---------- Sessions / answers ----------
+
+export function useSessionForResearch(researchId: string | null | undefined) {
+  return useSWR<Session>(
+    researchId ? `/research/${researchId}/session` : null,
+    fetcher,
+    { revalidateOnFocus: true },
+  );
+}
+
+export function useAnswers(sessionId: string | null | undefined) {
+  return useSWR<FormAnswer[]>(
+    sessionId ? `/sessions/${sessionId}/answers` : null,
+    fetcher,
+    { revalidateOnFocus: true },
+  );
+}
+
+export type AnswerInput = { question_id: string; answer_text: string };
+
+export async function saveAnswers(sessionId: string, answers: AnswerInput[]) {
+  const res = await fetch(`${API_URL}/sessions/${sessionId}/answers`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ answers }),
+  });
+  if (!res.ok) {
+    let body: unknown = null;
+    try {
+      body = await res.json();
+    } catch {
+      // ignore
+    }
+    throw new ApiError(
+      res.status,
+      body,
+      `PUT /sessions/${sessionId}/answers → ${res.status}`,
+    );
+  }
+  const json = (await res.json()) as {
+    answers: FormAnswer[];
+    session: Session;
+  };
+  globalMutate(`/sessions/${sessionId}/answers`, json.answers, {
+    revalidate: false,
+  });
+  globalMutate(`/research/${json.session.research_id}/session`, json.session, {
+    revalidate: false,
+  });
+  return json;
 }
 
 export { ApiError };

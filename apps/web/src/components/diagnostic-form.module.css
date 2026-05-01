@@ -1,0 +1,142 @@
+.wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.progress {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 16px 22px;
+}
+
+.progressLabel {
+  font-size: 14px;
+  color: var(--foreground);
+  white-space: nowrap;
+}
+
+.progressLabel strong {
+  font-weight: 700;
+}
+
+.progressBar {
+  flex: 1;
+  height: 6px;
+  background: var(--surface-muted);
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.progressFill {
+  height: 100%;
+  background: var(--accent);
+  border-radius: 999px;
+  transition: width 200ms ease;
+}
+
+.progressTag {
+  letter-spacing: 0.18em;
+  font-size: 11px;
+  color: var(--foreground-muted);
+}
+
+.questionCard {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 24px 28px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.eyebrow {
+  letter-spacing: 0.18em;
+  font-size: 11px;
+  color: var(--foreground-muted);
+  text-transform: uppercase;
+}
+
+.questionTitle {
+  font-size: 18px;
+  font-weight: 700;
+  margin: 0;
+  letter-spacing: -0.01em;
+}
+
+.prompt {
+  font-size: 14px;
+  color: var(--foreground-muted);
+  margin: 0;
+}
+
+.textarea {
+  width: 100%;
+  min-height: 110px;
+  resize: vertical;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 12px 14px;
+  font: inherit;
+  font-size: 14px;
+  background: var(--background);
+  color: var(--foreground);
+  transition: border-color 120ms ease;
+}
+
+.textarea:focus {
+  outline: none;
+  border-color: var(--foreground);
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+  padding-top: 4px;
+}
+
+.status {
+  font-size: 13px;
+  color: var(--foreground-muted);
+}
+
+.statusError {
+  color: #b00000;
+}
+
+.submit {
+  appearance: none;
+  border: 1px solid var(--foreground);
+  background: var(--foreground);
+  color: var(--background);
+  font: inherit;
+  font-weight: 600;
+  font-size: 14px;
+  padding: 10px 22px;
+  border-radius: 999px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  transition: opacity 120ms ease;
+}
+
+.submit:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.spinner {
+  animation: spin 800ms linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
