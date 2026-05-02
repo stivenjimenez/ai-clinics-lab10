@@ -49,28 +49,34 @@ export const ADOPTION_LABELS: Record<AdoptionLevel, string> = {
   5: "IA-NATIVO",
 };
 
-export type ImpactEffort = "alto" | "medio" | "bajo";
+export type ImpactEffort = "high" | "medium" | "low";
+
+export const IMPACT_EFFORT_LABELS: Record<ImpactEffort, string> = {
+  high: "alto",
+  medium: "medio",
+  low: "bajo",
+};
 
 export type InsightOpportunity = {
-  titulo: string;
-  descripcion: string;
-  impacto: ImpactEffort;
-  esfuerzo: ImpactEffort;
+  title: string;
+  description: string;
+  impact: ImpactEffort;
+  effort: ImpactEffort;
 };
 
 export type InsightRecommendation = {
-  orden: number;
-  texto: string;
+  order: number;
+  text: string;
 };
 
 export type InsightPayload = {
-  resumen_ejecutivo: string;
-  dolor_principal: string;
-  adopcion_ia: {
-    nivel: AdoptionLevel;
+  executive_summary: string;
+  pain_point: string;
+  ai_adoption: {
+    level: AdoptionLevel;
   };
-  oportunidades: InsightOpportunity[];
-  recomendaciones_iniciales: InsightRecommendation[];
+  opportunities: InsightOpportunity[];
+  initial_recommendations: InsightRecommendation[];
 };
 
 export type InsightStatus = "generating" | "ready" | "failed";
@@ -80,6 +86,24 @@ export type Insight = {
   session_id: string;
   status: InsightStatus;
   payload: InsightPayload | null;
+  model: string | null;
+  error_text: string | null;
+  generated_at: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+// ---------- Roadmap ----------
+
+export type RoadmapStatus = "generating" | "ready" | "failed";
+
+// El payload concreto vive en `roadmap-types.ts` (compartido con el playground).
+// Lo importamos donde haga falta para evitar ciclos.
+export type Roadmap = {
+  id: string;
+  session_id: string;
+  status: RoadmapStatus;
+  payload: import("./roadmap-types").RoadmapPayload | null;
   model: string | null;
   error_text: string | null;
   generated_at: string | null;

@@ -245,6 +245,33 @@
   margin: 0;
 }
 
+/* ---------- CTA al roadmap ---------- */
+
+.cta {
+  display: flex;
+  justify-content: flex-end;
+  padding-top: 4px;
+}
+
+.ctaButton {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 11px 20px;
+  border-radius: 999px;
+  background: var(--foreground);
+  color: var(--background);
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: -0.005em;
+  border: 1px solid var(--foreground);
+  transition: opacity 120ms ease;
+}
+
+.ctaButton:hover {
+  opacity: 0.88;
+}
+
 /* ---------- Estados ---------- */
 
 .statusBlock {

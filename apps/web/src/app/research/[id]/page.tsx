@@ -2,6 +2,7 @@
 
 import { use, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { ArrowLeft, ExternalLink, Loader2 } from "lucide-react";
 
 import { DiagnosticForm } from "@/components/diagnostic-form";
@@ -22,7 +23,9 @@ import {
 
 import styles from "./detail.module.css";
 
-type TabId = "brief" | "diagnostic" | "insights";
+type TabId = "brief" | "diagnostic" | "insights" | "roadmap";
+
+type DetailTabId = Exclude<TabId, "roadmap">;
 
 export default function ResearchDetailPage({
   params,
@@ -30,14 +33,23 @@ export default function ResearchDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = use(params);
+  const router = useRouter();
   const { data, error, isLoading } = useResearch(id);
   const isReady = data?.status === "ready";
   const { data: session } = useSessionForResearch(isReady ? id : null);
   const { data: answers } = useAnswers(session?.id);
   const { data: insight } = useInsight(session?.id);
 
-  const [tab, setTab] = useState<TabId>("brief");
+  const [tab, setTab] = useState<DetailTabId>("brief");
   const hasInsight = Boolean(insight);
+
+  function handleTabChange(next: TabId) {
+    if (next === "roadmap") {
+      router.push(`/research/${id}/roadmap`);
+      return;
+    }
+    setTab(next);
+  }
 
   const answeredCount = (answers ?? []).filter((a) =>
     DIAGNOSTIC_QUESTIONS.some((q) => q.id === a.question_id && a.answer_text.trim()),
@@ -111,7 +123,7 @@ export default function ResearchDetailPage({
               </div>
             </header>
 
-            <Tabs items={tabs} active={tab} onChange={setTab} ariaLabel="Secciones del research" />
+            <Tabs items={tabs} active={tab} onChange={handleTabChange} ariaLabel="Secciones del research" />
 
             {tab === "brief" && (
               <>
@@ -170,7 +182,10 @@ export default function ResearchDetailPage({
             )}
 
             {tab === "insights" && session && (
-              <InsightsView sessionId={session.id} />
+              <InsightsView
+                sessionId={session.id}
+                onOpenRoadmap={() => router.push(`/research/${id}/roadmap`)}
+              />
             )}
           </>
         )}

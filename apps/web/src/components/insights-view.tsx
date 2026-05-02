@@ -1,20 +1,28 @@
 "use client";
 
-import { Loader2, RotateCw } from "lucide-react";
+import { ArrowRight, Loader2, RotateCw } from "lucide-react";
 import { useState } from "react";
 
-import { generateInsight, useInsight } from "@/lib/api";
+import { generateInsight, useInsight, useRoadmap } from "@/lib/api";
 import {
   ADOPTION_LABELS,
+  IMPACT_EFFORT_LABELS,
   type AdoptionLevel,
-  type Insight,
   type InsightPayload,
+  type Roadmap,
 } from "@/lib/types";
 
 import styles from "./insights-view.module.css";
 
-export function InsightsView({ sessionId }: { sessionId: string }) {
+export function InsightsView({
+  sessionId,
+  onOpenRoadmap,
+}: {
+  sessionId: string;
+  onOpenRoadmap: () => void;
+}) {
   const { data: insight, error } = useInsight(sessionId);
+  const { data: roadmap } = useRoadmap(sessionId);
   const [retrying, setRetrying] = useState(false);
 
   const notFound = isNotFound(error);
@@ -80,50 +88,74 @@ export function InsightsView({ sessionId }: { sessionId: string }) {
   }
 
   if (insight?.status === "ready" && insight.payload) {
-    return <InsightsContent insight={insight} payload={insight.payload} />;
+    return (
+      <InsightsContent
+        payload={insight.payload}
+        roadmap={roadmap}
+        onOpenRoadmap={onOpenRoadmap}
+      />
+    );
   }
 
   return null;
 }
 
 function InsightsContent({
-  insight,
   payload,
+  roadmap,
+  onOpenRoadmap,
 }: {
-  insight: Insight;
   payload: InsightPayload;
+  roadmap: Roadmap | undefined;
+  onOpenRoadmap: () => void;
 }) {
+  const hasRoadmap = Boolean(roadmap);
+  const ctaLabel = hasRoadmap ? "Continuar sesión" : "Crear roadmap";
+  const cta = (
+    <div className={styles.cta}>
+      <button
+        type="button"
+        onClick={onOpenRoadmap}
+        className={styles.ctaButton}
+      >
+        {ctaLabel}
+        <ArrowRight size={16} strokeWidth={2.25} />
+      </button>
+    </div>
+  );
   return (
     <div className={styles.wrapper}>
+      {cta}
+
       <section className={styles.summary}>
         <span className={styles.eyebrow}>Resumen ejecutivo</span>
-        <p>{payload.resumen_ejecutivo}</p>
+        <p>{payload.executive_summary}</p>
       </section>
 
       <div className={styles.row}>
         <section className={styles.card}>
           <span className={styles.eyebrow}>Dolor principal</span>
-          <p className={styles.cardBody}>{payload.dolor_principal}</p>
+          <p className={styles.cardBody}>{payload.pain_point}</p>
         </section>
         <section className={styles.card}>
           <span className={styles.eyebrow}>Adopción de IA</span>
-          <AdoptionMeter nivel={clampLevel(payload.adopcion_ia.nivel)} />
+          <AdoptionMeter nivel={clampLevel(payload.ai_adoption.level)} />
         </section>
       </div>
 
       <section className={styles.section}>
         <h3 className={styles.sectionTitle}>Oportunidades detectadas</h3>
         <div className={styles.opportunities}>
-          {payload.oportunidades.map((op, i) => (
+          {payload.opportunities.map((op, i) => (
             <article key={i} className={styles.opportunity}>
-              <h4 className={styles.opportunityTitle}>{op.titulo}</h4>
-              <p className={styles.opportunityDesc}>{op.descripcion}</p>
+              <h4 className={styles.opportunityTitle}>{op.title}</h4>
+              <p className={styles.opportunityDesc}>{op.description}</p>
               <div className={styles.tags}>
                 <span className={styles.tag}>
-                  Impacto · <strong>{op.impacto}</strong>
+                  Impacto · <strong>{IMPACT_EFFORT_LABELS[op.impact]}</strong>
                 </span>
                 <span className={styles.tag}>
-                  Esfuerzo · <strong>{op.esfuerzo}</strong>
+                  Esfuerzo · <strong>{IMPACT_EFFORT_LABELS[op.effort]}</strong>
                 </span>
               </div>
             </article>
@@ -134,32 +166,20 @@ function InsightsContent({
       <section className={styles.section}>
         <h3 className={styles.sectionTitle}>Recomendaciones iniciales</h3>
         <ol className={styles.recsList}>
-          {[...payload.recomendaciones_iniciales]
-            .sort((a, b) => a.orden - b.orden)
+          {[...payload.initial_recommendations]
+            .sort((a, b) => a.order - b.order)
             .map((rec) => (
-              <li key={rec.orden} className={styles.recItem}>
+              <li key={rec.order} className={styles.recItem}>
                 <span className={styles.recOrder}>
-                  {rec.orden.toString().padStart(2, "0")}
+                  {rec.order.toString().padStart(2, "0")}
                 </span>
-                <p className={styles.recText}>{rec.texto}</p>
+                <p className={styles.recText}>{rec.text}</p>
               </li>
             ))}
         </ol>
       </section>
 
-      {insight.generated_at && (
-        <p
-          style={{
-            margin: 0,
-            fontSize: 12,
-            color: "var(--foreground-muted)",
-            textAlign: "right",
-          }}
-        >
-          Generado {new Date(insight.generated_at).toLocaleString("es-419")}
-          {insight.model ? ` · ${insight.model}` : ""}
-        </p>
-      )}
+      {cta}
     </div>
   );
 }

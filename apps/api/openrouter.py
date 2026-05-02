@@ -139,14 +139,14 @@ INSIGHTS_JSON_SCHEMA: dict[str, Any] = {
         "type": "object",
         "additionalProperties": False,
         "required": [
-            "resumen_ejecutivo",
-            "dolor_principal",
-            "adopcion_ia",
-            "oportunidades",
-            "recomendaciones_iniciales",
+            "executive_summary",
+            "pain_point",
+            "ai_adoption",
+            "opportunities",
+            "initial_recommendations",
         ],
         "properties": {
-            "resumen_ejecutivo": {
+            "executive_summary": {
                 "type": "string",
                 "description": (
                     "2-3 frases que sinteticen el momento de la empresa frente a IA: "
@@ -154,19 +154,19 @@ INSIGHTS_JSON_SCHEMA: dict[str, Any] = {
                     "ejecutivo, sin jerga, en español (LATAM)."
                 ),
             },
-            "dolor_principal": {
+            "pain_point": {
                 "type": "string",
                 "description": (
                     "1-2 frases nombrando con precisión el dolor más costoso o "
                     "frecuente. Si hay una métrica concreta en las respuestas, úsala."
                 ),
             },
-            "adopcion_ia": {
+            "ai_adoption": {
                 "type": "object",
                 "additionalProperties": False,
-                "required": ["nivel"],
+                "required": ["level"],
                 "properties": {
-                    "nivel": {
+                    "level": {
                         "type": "integer",
                         "description": (
                             "Nivel de madurez en adopción de IA, entero de 1 a 5 "
@@ -176,52 +176,52 @@ INSIGHTS_JSON_SCHEMA: dict[str, Any] = {
                     },
                 },
             },
-            "oportunidades": {
+            "opportunities": {
                 "type": "array",
                 "items": {
                     "type": "object",
                     "additionalProperties": False,
-                    "required": ["titulo", "descripcion", "impacto", "esfuerzo"],
+                    "required": ["title", "description", "impact", "effort"],
                     "properties": {
-                        "titulo": {
+                        "title": {
                             "type": "string",
-                            "description": "Nombre corto de la oportunidad (≤ 8 palabras).",
+                            "description": "Nombre corto de la oportunidad (≤ 8 palabras), en español.",
                         },
-                        "descripcion": {
+                        "description": {
                             "type": "string",
                             "description": (
                                 "1-2 frases que conecten la oportunidad con el dolor "
-                                "y/o el contexto de la empresa."
+                                "y/o el contexto de la empresa. En español."
                             ),
                         },
-                        "impacto": {
+                        "impact": {
                             "type": "string",
-                            "enum": ["alto", "medio", "bajo"],
+                            "enum": ["high", "medium", "low"],
                         },
-                        "esfuerzo": {
+                        "effort": {
                             "type": "string",
-                            "enum": ["alto", "medio", "bajo"],
+                            "enum": ["high", "medium", "low"],
                         },
                     },
                 },
             },
-            "recomendaciones_iniciales": {
+            "initial_recommendations": {
                 "type": "array",
                 "items": {
                     "type": "object",
                     "additionalProperties": False,
-                    "required": ["orden", "texto"],
+                    "required": ["order", "text"],
                     "properties": {
-                        "orden": {
+                        "order": {
                             "type": "integer",
                             "description": "Posición 1..N en la secuencia de recomendaciones.",
                         },
-                        "texto": {
+                        "text": {
                             "type": "string",
                             "description": (
-                                "Recomendación accionable, en una frase. Sin verbos "
-                                "vagos ('explorar', 'considerar'); preferir 'definir', "
-                                "'medir', 'piloto de'."
+                                "Recomendación accionable, en una frase, en español. "
+                                "Sin verbos vagos ('explorar', 'considerar'); preferir "
+                                "'definir', 'medir', 'piloto de'."
                             ),
                         },
                     },
@@ -246,14 +246,17 @@ Reglas duras:
 - Conecta SIEMPRE las oportunidades y recomendaciones con el dolor y/o las respuestas. \
   Nada genérico tipo "implementar IA para mejorar procesos".
 - Si una respuesta menciona una métrica concreta (NPS, tickets, costo, tiempo), úsala \
-  textualmente en `dolor_principal` o `resumen_ejecutivo`.
+  textualmente en `pain_point` o `executive_summary`.
 - No inventes datos que no estén en el dossier o las respuestas. Si algo no está, no \
   lo afirmes.
-- Idioma: español (LATAM). Tono ejecutivo, denso, sin jerga vacía.
+- Idioma de los VALORES: español (LATAM). Tono ejecutivo, denso, sin jerga vacía. Las \
+  CLAVES del JSON ya vienen fijadas por el schema en inglés; no las traduzcas.
 - Recomendaciones: verbos accionables ("definir KPIs", "lanzar piloto de…", "medir…"). \
   Evita "explorar", "considerar", "evaluar la posibilidad de".
 - Cantidades: 3 a 5 oportunidades, 3 a 5 recomendaciones. Numera las recomendaciones \
-  desde 1 en `orden`, sin saltos.
+  desde 1 en `order`, sin saltos.
+- Enums `impact` y `effort` usan los valores en inglés definidos por el schema \
+  (`high`, `medium`, `low`).
 
 {rubric}
 """.replace("{rubric}", ADOPTION_RUBRIC)
@@ -322,6 +325,218 @@ async def generate_insights(
         "response_format": {
             "type": "json_schema",
             "json_schema": INSIGHTS_JSON_SCHEMA,
+        },
+    }
+
+    parsed = await _call_openrouter(model=model, headers=headers, payload=payload)
+    return parsed, model
+
+
+# =====================================================================
+# Roadmap (Etapa 5)
+# =====================================================================
+
+ROADMAP_JSON_SCHEMA: dict[str, Any] = {
+    "name": "session_roadmap",
+    "strict": True,
+    "schema": {
+        "type": "object",
+        "additionalProperties": False,
+        "required": ["nodes", "edges"],
+        "properties": {
+            "nodes": {
+                "type": "array",
+                "description": (
+                    "Secuencia lineal de checkpoints. Exactamente UN nodo "
+                    "type='problem' al inicio. Luego entre 4 y 7 nodos "
+                    "alternando 'action' y 'milestone'."
+                ),
+                "items": {
+                    "type": "object",
+                    "additionalProperties": False,
+                    "required": ["id", "type", "data", "position"],
+                    "properties": {
+                        "id": {
+                            "type": "string",
+                            "description": (
+                                "Slug corto y único dentro del roadmap, p. ej. "
+                                "'problem', 's1', 's2', etc."
+                            ),
+                        },
+                        "type": {
+                            "type": "string",
+                            "enum": ["problem", "action", "milestone"],
+                            "description": (
+                                "'problem': el dolor a resolver, 1 solo, sin "
+                                "edges entrantes. 'action': paso intermedio. "
+                                "'milestone': checkpoint donde se valida progreso."
+                            ),
+                        },
+                        "data": {
+                            "type": "object",
+                            "additionalProperties": False,
+                            "required": ["title", "description"],
+                            "properties": {
+                                "title": {
+                                    "type": "string",
+                                    "description": (
+                                        "Título corto en español (≤ 9 palabras). "
+                                        "Específico, accionable, sin jerga vacía."
+                                    ),
+                                },
+                                "description": {
+                                    "type": "string",
+                                    "description": (
+                                        "Una sola frase en español que explique "
+                                        "qué se hace o se logra. Sin enumerar pasos "
+                                        "internos."
+                                    ),
+                                },
+                            },
+                        },
+                        "position": {
+                            "type": "object",
+                            "additionalProperties": False,
+                            "required": ["x", "y"],
+                            "properties": {
+                                "x": {"type": "number"},
+                                "y": {"type": "number"},
+                            },
+                            "description": (
+                                "Posición inicial; el frontend recalcula el "
+                                "layout. Usa {x: 0, y: 0} para todos."
+                            ),
+                        },
+                    },
+                },
+            },
+            "edges": {
+                "type": "array",
+                "description": (
+                    "Cadena lineal: el nodo problem conecta al primer paso, "
+                    "luego cada paso conecta al siguiente. Sin ramas, sin ciclos."
+                ),
+                "items": {
+                    "type": "object",
+                    "additionalProperties": False,
+                    "required": ["id", "source", "target"],
+                    "properties": {
+                        "id": {"type": "string"},
+                        "source": {"type": "string"},
+                        "target": {"type": "string"},
+                    },
+                },
+            },
+        },
+    },
+}
+
+
+ROADMAP_SYSTEM_PROMPT = """Eres un consultor senior de Lab10. Acabas de cerrar una \
+sesión de diagnóstico de IA con un ejecutivo y tienes:
+
+1. Un dossier factual de la empresa.
+2. Las respuestas del ejecutivo a 3 preguntas (dolor, área de IA, métrica).
+3. Un objeto de insights ya generado (resumen ejecutivo, dolor principal, nivel de \
+   adopción, oportunidades, recomendaciones iniciales).
+
+Tu tarea: producir un **roadmap lineal de checkpoints** que conecte el dolor con un \
+plan paso-a-paso. Devuelve un JSON con `nodes` y `edges`.
+
+REGLAS DURAS:
+- Exactamente UN nodo `type='problem'` al inicio. Su contenido sintetiza el `pain_point` \
+  del insight en una frase corta y específica (sin generalidades tipo "necesitan adoptar IA").
+- Después del problem, entre 4 y 7 nodos alternando `action` y `milestone`. Acción = \
+  algo que se hace. Milestone = punto donde se valida que el paso anterior funcionó \
+  ("piloto evaluado", "modelo en producción", "dashboard adoptado").
+- Cadena lineal: el primer paso tiene como `source` al nodo problem; cada paso siguiente \
+  tiene como `source` al paso anterior. Sin ramas. Sin ciclos. Sin volver atrás.
+- Cada nodo: `title` ≤ 9 palabras, `description` una sola frase. Sin jerga vacía. \
+  Lenguaje del ejecutivo, no del consultor.
+- Conecta SIEMPRE el plan con las oportunidades y recomendaciones del insight: cada \
+  acción/milestone debe ser trazable a algo concreto del insight. Si no, no la pongas.
+- IDs: usa 'problem' para el problema y 's1', 's2', 's3', ... para los pasos en orden. \
+  IDs de edges: 'e0' del problem al primer paso, 'e1' del s1 al s2, etc.
+- Posiciones: pon `{x: 0, y: 0}` en todos los nodos. El frontend recalcula el layout.
+- Idioma de los VALORES de texto: español (LATAM). Las CLAVES están fijadas por el \
+  schema, no las traduzcas.
+- No inventes datos que no estén en el dossier, las respuestas o los insights. Si \
+  algo no está, no lo afirmes.
+
+Devuelve únicamente el JSON con la estructura del schema. Sin texto extra.
+"""
+
+
+def _build_roadmap_user_prompt(
+    *,
+    company_name: str,
+    dossier: dict[str, Any] | None,
+    answers: list[dict[str, str]],
+    insights: dict[str, Any] | None,
+) -> str:
+    lines = [f"Empresa: {company_name}", ""]
+
+    if dossier and dossier.get("summary"):
+        lines.append("# Dossier")
+        lines.append(dossier["summary"])
+        lines.append("")
+
+    lines.append("# Respuestas del ejecutivo")
+    if not answers:
+        lines.append("(sin respuestas registradas)")
+    else:
+        for a in answers:
+            title = a.get("title") or a.get("question_id")
+            text = (a.get("answer_text") or "").strip()
+            lines.append(f"- **{title}**: {text or '(en blanco)'}")
+    lines.append("")
+
+    lines.append("# Insights ya generados")
+    if insights:
+        lines.append(json.dumps(insights, ensure_ascii=False, indent=2))
+    else:
+        lines.append("(sin insights — produce el roadmap solo con dossier + respuestas)")
+    lines.append("")
+
+    lines.append(
+        "Devuelve únicamente el JSON con la estructura del schema. Sin texto extra."
+    )
+    return "\n".join(lines)
+
+
+async def generate_roadmap(
+    *,
+    company_name: str,
+    dossier: dict[str, Any] | None,
+    answers: list[dict[str, str]],
+    insights: dict[str, Any] | None,
+) -> tuple[dict[str, Any], str]:
+    """Llama al LLM y devuelve (payload, model_id) listos para persistir."""
+    api_key = os.environ["OPENROUTER_API_KEY"]
+    # Mismo criterio que insights: sin búsqueda web; el contexto ya está en el prompt.
+    model = os.environ.get(
+        "OPENROUTER_ROADMAP_MODEL",
+        os.environ.get("OPENROUTER_MODEL", "openai/gpt-5").replace(":online", ""),
+    )
+
+    headers = _build_headers(api_key)
+    payload = {
+        "model": model,
+        "messages": [
+            {"role": "system", "content": ROADMAP_SYSTEM_PROMPT},
+            {
+                "role": "user",
+                "content": _build_roadmap_user_prompt(
+                    company_name=company_name,
+                    dossier=dossier,
+                    answers=answers,
+                    insights=insights,
+                ),
+            },
+        ],
+        "response_format": {
+            "type": "json_schema",
+            "json_schema": ROADMAP_JSON_SCHEMA,
         },
     }
 

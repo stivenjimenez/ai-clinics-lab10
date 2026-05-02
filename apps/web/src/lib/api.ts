@@ -5,8 +5,10 @@ import type {
   Insight,
   Research,
   ResearchStatus,
+  Roadmap,
   Session,
 } from "./types";
+import type { RoadmapPayload } from "./roadmap-types";
 
 export const API_URL =
   process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
@@ -208,6 +210,87 @@ export async function generateInsight(sessionId: string): Promise<Insight> {
   const created = (await res.json()) as Insight;
   globalMutate(`/sessions/${sessionId}/insights`, created, { revalidate: true });
   return created;
+}
+
+// ---------- Roadmap ----------
+
+export function useRoadmap(sessionId: string | null | undefined) {
+  return useSWR<Roadmap>(
+    sessionId ? `/sessions/${sessionId}/roadmap` : null,
+    async (path: string) => {
+      const res = await fetch(`${API_URL}${path}`, { cache: "no-store" });
+      if (res.status === 404) {
+        throw new ApiError(404, null, "no roadmap yet");
+      }
+      if (!res.ok) {
+        let body: unknown = null;
+        try {
+          body = await res.json();
+        } catch {
+          // ignore
+        }
+        throw new ApiError(res.status, body, `${path} → ${res.status}`);
+      }
+      return res.json() as Promise<Roadmap>;
+    },
+    {
+      refreshInterval: (latest) =>
+        latest?.status === "generating" ? 4000 : 0,
+      revalidateOnFocus: true,
+      shouldRetryOnError: (err) =>
+        !(err instanceof ApiError && err.status === 404),
+    },
+  );
+}
+
+export async function generateRoadmap(sessionId: string): Promise<Roadmap> {
+  const res = await fetch(
+    `${API_URL}/sessions/${sessionId}/roadmap/generate`,
+    { method: "POST" },
+  );
+  if (!res.ok) {
+    let body: unknown = null;
+    try {
+      body = await res.json();
+    } catch {
+      // ignore
+    }
+    throw new ApiError(
+      res.status,
+      body,
+      `POST /sessions/${sessionId}/roadmap/generate → ${res.status}`,
+    );
+  }
+  const created = (await res.json()) as Roadmap;
+  globalMutate(`/sessions/${sessionId}/roadmap`, created, { revalidate: true });
+  return created;
+}
+
+export async function updateRoadmap(
+  sessionId: string,
+  payload: RoadmapPayload,
+): Promise<Roadmap> {
+  const res = await fetch(`${API_URL}/sessions/${sessionId}/roadmap`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ payload }),
+  });
+  if (!res.ok) {
+    let body: unknown = null;
+    try {
+      body = await res.json();
+    } catch {
+      // ignore
+    }
+    throw new ApiError(
+      res.status,
+      body,
+      `PUT /sessions/${sessionId}/roadmap → ${res.status}`,
+    );
+  }
+  const updated = (await res.json()) as Roadmap;
+  globalMutate(`/sessions/${sessionId}/roadmap`, updated, { revalidate: false });
+  return updated;
 }
 
 export { ApiError };

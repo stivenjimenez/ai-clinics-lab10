@@ -7,7 +7,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
 from db import supabase
-from openrouter import generate_dossier, generate_insights
+from openrouter import generate_dossier, generate_insights, generate_roadmap
 
 logger = logging.getLogger("ai-clinics-api")
 logging.basicConfig(level=logging.INFO)
@@ -349,3 +349,173 @@ async def generate_insights_endpoint(
     )
     background.add_task(_run_insights, session_id)
     return upserted.data[0] if upserted.data else {"session_id": session_id, "status": "generating"}
+
+
+# ---------- Roadmap ----------
+
+class RoadmapPayloadIn(BaseModel):
+    payload: dict
+
+
+async def _run_roadmap(session_id: str) -> None:
+    """Carga research + answers + insights, llama al LLM y persiste el roadmap."""
+    logger.info("roadmap %s: starting LLM call", session_id)
+    try:
+        session_res = (
+            supabase.table("sessions")
+            .select("id, research_id")
+            .eq("id", session_id)
+            .maybe_single()
+            .execute()
+        )
+        if not session_res.data:
+            raise RuntimeError(f"session {session_id} not found")
+        research_id = session_res.data["research_id"]
+
+        research_res = (
+            supabase.table("research")
+            .select("company_name, dossier")
+            .eq("id", research_id)
+            .maybe_single()
+            .execute()
+        )
+        if not research_res.data:
+            raise RuntimeError(f"research {research_id} not found")
+        company_name = research_res.data["company_name"]
+        dossier = research_res.data.get("dossier")
+
+        answers_res = (
+            supabase.table("form_answers")
+            .select("question_id, answer_text")
+            .eq("session_id", session_id)
+            .execute()
+        )
+        decorated_answers = [
+            {
+                "question_id": a["question_id"],
+                "title": QUESTION_LABELS.get(a["question_id"], {}).get(
+                    "title", a["question_id"]
+                ),
+                "prompt": QUESTION_LABELS.get(a["question_id"], {}).get("prompt", ""),
+                "answer_text": a["answer_text"],
+            }
+            for a in (answers_res.data or [])
+        ]
+
+        insights_res = (
+            supabase.table("insights")
+            .select("payload, status")
+            .eq("session_id", session_id)
+            .limit(1)
+            .execute()
+        )
+        insights_payload = None
+        if insights_res.data:
+            row = insights_res.data[0]
+            if row.get("status") == "ready":
+                insights_payload = row.get("payload")
+
+        payload, model = await generate_roadmap(
+            company_name=company_name,
+            dossier=dossier,
+            answers=decorated_answers,
+            insights=insights_payload,
+        )
+
+        supabase.table("roadmaps").upsert(
+            {
+                "session_id": session_id,
+                "status": "ready",
+                "payload": payload,
+                "model": model,
+                "error_text": None,
+                "generated_at": datetime.now(timezone.utc).isoformat(),
+            },
+            on_conflict="session_id",
+        ).execute()
+        logger.info("roadmap %s: persisted as ready (model=%s)", session_id, model)
+    except Exception as e:
+        logger.exception("roadmap %s failed", session_id)
+        try:
+            supabase.table("roadmaps").upsert(
+                {
+                    "session_id": session_id,
+                    "status": "failed",
+                    "error_text": str(e)[:500],
+                },
+                on_conflict="session_id",
+            ).execute()
+        except Exception:
+            logger.exception(
+                "roadmap %s: also failed to record failure", session_id
+            )
+
+
+@app.get("/sessions/{session_id}/roadmap")
+def get_roadmap(session_id: str):
+    res = (
+        supabase.table("roadmaps")
+        .select("*")
+        .eq("session_id", session_id)
+        .limit(1)
+        .execute()
+    )
+    if not res.data:
+        raise HTTPException(status_code=404, detail="roadmap not found")
+    return res.data[0]
+
+
+@app.post("/sessions/{session_id}/roadmap/generate", status_code=202)
+async def generate_roadmap_endpoint(
+    session_id: str, background: BackgroundTasks
+):
+    session_res = (
+        supabase.table("sessions")
+        .select("id")
+        .eq("id", session_id)
+        .maybe_single()
+        .execute()
+    )
+    if not session_res.data:
+        raise HTTPException(status_code=404, detail="session not found")
+
+    upserted = (
+        supabase.table("roadmaps")
+        .upsert(
+            {
+                "session_id": session_id,
+                "status": "generating",
+                "error_text": None,
+            },
+            on_conflict="session_id",
+        )
+        .execute()
+    )
+    background.add_task(_run_roadmap, session_id)
+    return (
+        upserted.data[0]
+        if upserted.data
+        else {"session_id": session_id, "status": "generating"}
+    )
+
+
+@app.put("/sessions/{session_id}/roadmap")
+def update_roadmap(session_id: str, body: RoadmapPayloadIn):
+    """Persiste cambios manuales del payload (drag-to-reposition por ahora)."""
+    existing = (
+        supabase.table("roadmaps")
+        .select("id, status")
+        .eq("session_id", session_id)
+        .limit(1)
+        .execute()
+    )
+    if not existing.data:
+        raise HTTPException(status_code=404, detail="roadmap not found")
+
+    updated = (
+        supabase.table("roadmaps")
+        .update({"payload": body.payload})
+        .eq("session_id", session_id)
+        .execute()
+    )
+    return updated.data[0] if updated.data else existing.data[0]

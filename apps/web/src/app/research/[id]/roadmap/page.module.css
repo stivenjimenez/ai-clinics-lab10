@@ -1,0 +1,60 @@
+.main {
+  width: 100%;
+  padding: 24px 32px 32px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  box-sizing: border-box;
+}
+
+.topBar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 4px;
+}
+
+.backLink {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--foreground-muted);
+  font-size: 13px;
+  transition: color 120ms ease;
+}
+
+.backLink:hover {
+  color: var(--foreground);
+}
+
+.header {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.eyebrow {
+  letter-spacing: 0.18em;
+  font-size: 11px;
+  color: var(--foreground-muted);
+  text-transform: uppercase;
+  font-weight: 700;
+}
+
+.title {
+  margin: 0;
+  font-size: 26px;
+  letter-spacing: -0.01em;
+}
+
+.errorBox {
+  background: #ffe2e2;
+  border: 1px solid #f3b9b9;
+  color: #6b0000;
+  padding: 16px 20px;
+  border-radius: var(--radius);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-width: 640px;
+}
