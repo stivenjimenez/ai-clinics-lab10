@@ -6,6 +6,8 @@
   border: 1px solid var(--border);
   border-radius: 999px;
   padding: 4px;
+  align-self: flex-start;
+  width: fit-content;
 }
 
 .tab {
