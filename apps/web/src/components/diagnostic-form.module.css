@@ -111,11 +111,15 @@
   color: #b00000;
 }
 
-.submit {
+.actionButtons {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.submit,
+.secondary {
   appearance: none;
-  border: 1px solid var(--foreground);
-  background: var(--foreground);
-  color: var(--background);
   font: inherit;
   font-weight: 600;
   font-size: 14px;
@@ -125,10 +129,27 @@
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  transition: opacity 120ms ease;
+  transition: opacity 120ms ease, background 120ms ease;
 }
 
-.submit:disabled {
+.submit {
+  border: 1px solid var(--foreground);
+  background: var(--foreground);
+  color: var(--background);
+}
+
+.secondary {
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--foreground);
+}
+
+.secondary:hover:not(:disabled) {
+  border-color: var(--foreground);
+}
+
+.submit:disabled,
+.secondary:disabled {
   opacity: 0.55;
   cursor: not-allowed;
 }

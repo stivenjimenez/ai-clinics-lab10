@@ -1,0 +1,359 @@
+.wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+/* ---------- Resumen ejecutivo (card oscura) ---------- */
+
+.summary {
+  background: var(--foreground);
+  color: var(--background);
+  border-radius: var(--radius-lg);
+  padding: 28px 32px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.summary .eyebrow {
+  color: rgba(255, 255, 255, 0.55);
+}
+
+.summary p {
+  margin: 0;
+  font-size: 18px;
+  line-height: 1.55;
+  letter-spacing: -0.005em;
+}
+
+/* ---------- Row dolor + adopción ---------- */
+
+.row {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 20px;
+}
+
+@media (max-width: 720px) {
+  .row {
+    grid-template-columns: 1fr;
+  }
+}
+
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 22px 26px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.eyebrow {
+  letter-spacing: 0.18em;
+  font-size: 11px;
+  color: var(--foreground-muted);
+  text-transform: uppercase;
+  font-weight: 600;
+}
+
+.cardBody {
+  margin: 0;
+  font-size: 15px;
+  line-height: 1.6;
+  color: var(--foreground);
+}
+
+.adoption {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 2px;
+}
+
+.adoptionHeader {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+}
+
+.adoptionLevel {
+  font-size: 44px;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  line-height: 1;
+}
+
+.adoptionMax {
+  font-size: 16px;
+  color: var(--foreground-muted);
+  font-weight: 600;
+}
+
+.scale {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 4px;
+}
+
+.segment {
+  height: 8px;
+  border-radius: 999px;
+  background: var(--surface-muted);
+  transition: background 160ms ease;
+}
+
+.segment[data-filled="true"] {
+  background: var(--foreground);
+}
+
+.adoptionLabel {
+  font-size: 12px;
+  letter-spacing: 0.14em;
+  font-weight: 700;
+  color: var(--foreground);
+  text-transform: uppercase;
+}
+
+/* ---------- Oportunidades ---------- */
+
+.section {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 22px 26px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.sectionTitle {
+  letter-spacing: 0.18em;
+  font-size: 11px;
+  color: var(--foreground-muted);
+  text-transform: uppercase;
+  font-weight: 600;
+  margin: 0;
+}
+
+.opportunities {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px;
+}
+
+@media (max-width: 900px) {
+  .opportunities { grid-template-columns: repeat(2, 1fr); }
+}
+
+@media (max-width: 600px) {
+  .opportunities { grid-template-columns: 1fr; }
+}
+
+.opportunity {
+  background: var(--background);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.opportunityTitle {
+  font-size: 15px;
+  font-weight: 700;
+  margin: 0;
+  letter-spacing: -0.005em;
+}
+
+.opportunityDesc {
+  margin: 0;
+  font-size: 13px;
+  color: var(--foreground-muted);
+  line-height: 1.55;
+}
+
+.tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: auto;
+}
+
+.tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  background: var(--highlight, #ece8ff);
+  color: var(--foreground);
+  font-weight: 500;
+}
+
+.tag strong {
+  font-weight: 700;
+  text-transform: capitalize;
+}
+
+/* ---------- Recomendaciones ---------- */
+
+.recsList {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.recItem {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 10px 0;
+  border-bottom: 1px dashed var(--border);
+}
+
+.recItem:last-child {
+  border-bottom: none;
+}
+
+.recOrder {
+  flex: 0 0 auto;
+  width: 28px;
+  height: 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  background: var(--highlight, #ece8ff);
+  font-size: 12px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.recText {
+  font-size: 14px;
+  color: var(--foreground);
+  line-height: 1.55;
+  margin: 0;
+}
+
+/* ---------- Estados ---------- */
+
+.statusBlock {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 22px 26px;
+}
+
+.statusBlock p {
+  margin: 6px 0 0;
+  color: var(--foreground-muted);
+  font-size: 14px;
+}
+
+.spinner {
+  color: var(--accent);
+  flex: 0 0 auto;
+  margin-top: 2px;
+  animation: spin 800ms linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.errorBox {
+  background: #ffe2e2;
+  border: 1px solid #f3b9b9;
+  color: #6b0000;
+  padding: 16px 20px;
+  border-radius: var(--radius);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.errorBox code {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  word-break: break-word;
+}
+
+.retry {
+  align-self: flex-start;
+  appearance: none;
+  font: inherit;
+  font-weight: 600;
+  font-size: 13px;
+  padding: 8px 16px;
+  border-radius: 999px;
+  border: 1px solid #6b0000;
+  background: transparent;
+  color: #6b0000;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.retry:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.empty {
+  background: var(--surface);
+  border: 1px dashed var(--border);
+  border-radius: var(--radius-lg);
+  padding: 40px 28px;
+  text-align: center;
+  color: var(--foreground-muted);
+  font-size: 14px;
+  line-height: 1.55;
+}
+
+/* ---------- Skeleton ---------- */
+
+.skel {
+  background: linear-gradient(
+    90deg,
+    var(--surface-muted) 0%,
+    #efefec 50%,
+    var(--surface-muted) 100%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.4s ease-in-out infinite;
+  border-radius: 8px;
+}
+
+.skelSummary {
+  height: 120px;
+  border-radius: var(--radius-lg);
+}
+
+.skelCard {
+  height: 90px;
+  border-radius: var(--radius-lg);
+}
+
+.skelSection {
+  height: 200px;
+  border-radius: var(--radius-lg);
+}
+
+@keyframes shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}

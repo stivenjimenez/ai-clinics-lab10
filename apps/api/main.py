@@ -7,7 +7,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
 from db import supabase
-from openrouter import generate_dossier
+from openrouter import generate_dossier, generate_insights
 
 logger = logging.getLogger("ai-clinics-api")
 logging.basicConfig(level=logging.INFO)
@@ -26,6 +26,24 @@ app.add_middleware(
 # ---------- Schemas ----------
 
 ResearchStatus = Literal["pending", "researching", "ready", "failed"]
+
+# Espejo mínimo del catálogo del frontend (`apps/web/src/lib/diagnostic-questions.ts`).
+# Lo usamos solo para humanizar los question_id al armar el prompt de insights;
+# las preguntas siguen siendo la fuente de verdad en el frontend.
+QUESTION_LABELS: dict[str, dict[str, str]] = {
+    "pain_point": {
+        "title": "Dolor principal",
+        "prompt": "¿Cuál es el problema que más les está costando dinero o tiempo hoy?",
+    },
+    "ai_focus_area": {
+        "title": "Área de exploración con IA",
+        "prompt": "¿Dónde quieren empezar a aplicar IA primero?",
+    },
+    "success_metric": {
+        "title": "Cómo se mide el éxito",
+        "prompt": "¿Qué métrica concreta tendría que moverse para que esto valga la pena?",
+    },
+}
 
 
 class ResearchCreate(BaseModel):
@@ -205,3 +223,129 @@ def upsert_answers(session_id: str, payload: AnswersUpsert):
             session = updated.data[0]
 
     return {"answers": upserted.data, "session": session}
+
+
+# ---------- Insights ----------
+
+async def _run_insights(session_id: str) -> None:
+    """Carga research + answers, llama al LLM y persiste el insight."""
+    logger.info("insights %s: starting LLM call", session_id)
+    try:
+        session_res = (
+            supabase.table("sessions")
+            .select("id, research_id")
+            .eq("id", session_id)
+            .maybe_single()
+            .execute()
+        )
+        if not session_res.data:
+            raise RuntimeError(f"session {session_id} not found")
+        research_id = session_res.data["research_id"]
+
+        research_res = (
+            supabase.table("research")
+            .select("company_name, dossier")
+            .eq("id", research_id)
+            .maybe_single()
+            .execute()
+        )
+        if not research_res.data:
+            raise RuntimeError(f"research {research_id} not found")
+        company_name = research_res.data["company_name"]
+        dossier = research_res.data.get("dossier")
+
+        answers_res = (
+            supabase.table("form_answers")
+            .select("question_id, answer_text")
+            .eq("session_id", session_id)
+            .execute()
+        )
+        decorated_answers = [
+            {
+                "question_id": a["question_id"],
+                "title": QUESTION_LABELS.get(a["question_id"], {}).get(
+                    "title", a["question_id"]
+                ),
+                "prompt": QUESTION_LABELS.get(a["question_id"], {}).get("prompt", ""),
+                "answer_text": a["answer_text"],
+            }
+            for a in (answers_res.data or [])
+        ]
+
+        payload, model = await generate_insights(
+            company_name=company_name,
+            dossier=dossier,
+            answers=decorated_answers,
+        )
+
+        supabase.table("insights").upsert(
+            {
+                "session_id": session_id,
+                "status": "ready",
+                "payload": payload,
+                "model": model,
+                "error_text": None,
+                "generated_at": datetime.now(timezone.utc).isoformat(),
+            },
+            on_conflict="session_id",
+        ).execute()
+        logger.info("insights %s: persisted as ready (model=%s)", session_id, model)
+    except Exception as e:
+        logger.exception("insights %s failed", session_id)
+        try:
+            supabase.table("insights").upsert(
+                {
+                    "session_id": session_id,
+                    "status": "failed",
+                    "error_text": str(e)[:500],
+                },
+                on_conflict="session_id",
+            ).execute()
+        except Exception:
+            logger.exception(
+                "insights %s: also failed to record failure", session_id
+            )
+
+
+@app.get("/sessions/{session_id}/insights")
+def get_insights(session_id: str):
+    res = (
+        supabase.table("insights")
+        .select("*")
+        .eq("session_id", session_id)
+        .limit(1)
+        .execute()
+    )
+    if not res.data:
+        raise HTTPException(status_code=404, detail="insights not found")
+    return res.data[0]
+
+
+@app.post("/sessions/{session_id}/insights/generate", status_code=202)
+async def generate_insights_endpoint(
+    session_id: str, background: BackgroundTasks
+):
+    session_res = (
+        supabase.table("sessions")
+        .select("id")
+        .eq("id", session_id)
+        .maybe_single()
+        .execute()
+    )
+    if not session_res.data:
+        raise HTTPException(status_code=404, detail="session not found")
+
+    upserted = (
+        supabase.table("insights")
+        .upsert(
+            {
+                "session_id": session_id,
+                "status": "generating",
+                "error_text": None,
+            },
+            on_conflict="session_id",
+        )
+        .execute()
+    )
+    background.add_task(_run_insights, session_id)
+    return upserted.data[0] if upserted.data else {"session_id": session_id, "status": "generating"}

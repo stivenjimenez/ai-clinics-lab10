@@ -5,11 +5,13 @@ import Link from "next/link";
 import { ArrowLeft, ExternalLink, Loader2 } from "lucide-react";
 
 import { DiagnosticForm } from "@/components/diagnostic-form";
+import { InsightsView } from "@/components/insights-view";
 import { SiteHeader } from "@/components/site-header";
 import { StatusBadge } from "@/components/status-badge";
 import { Tabs, type TabItem } from "@/components/tabs";
 import {
   useAnswers,
+  useInsight,
   useResearch,
   useSessionForResearch,
 } from "@/lib/api";
@@ -32,8 +34,10 @@ export default function ResearchDetailPage({
   const isReady = data?.status === "ready";
   const { data: session } = useSessionForResearch(isReady ? id : null);
   const { data: answers } = useAnswers(session?.id);
+  const { data: insight } = useInsight(session?.id);
 
   const [tab, setTab] = useState<TabId>("brief");
+  const hasInsight = Boolean(insight);
 
   const answeredCount = (answers ?? []).filter((a) =>
     DIAGNOSTIC_QUESTIONS.some((q) => q.id === a.question_id && a.answer_text.trim()),
@@ -51,8 +55,8 @@ export default function ResearchDetailPage({
     {
       id: "insights",
       label: "Insights",
-      disabled: true,
-      disabledReason: "Próximamente",
+      disabled: !hasInsight,
+      disabledReason: "Genera insights al terminar el diagnóstico",
     },
   ];
 
@@ -150,7 +154,10 @@ export default function ResearchDetailPage({
             )}
 
             {tab === "diagnostic" && session && (
-              <DiagnosticForm sessionId={session.id} />
+              <DiagnosticForm
+                sessionId={session.id}
+                onInsightStarted={() => setTab("insights")}
+              />
             )}
 
             {tab === "diagnostic" && !session && (
@@ -160,6 +167,10 @@ export default function ResearchDetailPage({
                   <strong>Cargando sesión…</strong>
                 </div>
               </div>
+            )}
+
+            {tab === "insights" && session && (
+              <InsightsView sessionId={session.id} />
             )}
           </>
         )}

@@ -1,9 +1,9 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Loader2 } from "lucide-react";
+import { Loader2, Sparkles } from "lucide-react";
 
-import { saveAnswers, useAnswers } from "@/lib/api";
+import { generateInsight, saveAnswers, useAnswers, useInsight } from "@/lib/api";
 import {
   DIAGNOSTIC_QUESTIONS,
   TOTAL_DIAGNOSTIC_QUESTIONS,
@@ -11,10 +11,17 @@ import {
 
 import styles from "./diagnostic-form.module.css";
 
-type SaveState = "idle" | "saving" | "saved" | "error";
+type SaveState = "idle" | "saving" | "generating" | "saved" | "error";
 
-export function DiagnosticForm({ sessionId }: { sessionId: string }) {
+export function DiagnosticForm({
+  sessionId,
+  onInsightStarted,
+}: {
+  sessionId: string;
+  onInsightStarted?: () => void;
+}) {
   const { data: persisted, isLoading } = useAnswers(sessionId);
+  const { data: insight } = useInsight(sessionId);
   const [drafts, setDrafts] = useState<Record<string, string>>({});
   const [hydrated, setHydrated] = useState(false);
   const [saveState, setSaveState] = useState<SaveState>("idle");
@@ -50,18 +57,24 @@ export function DiagnosticForm({ sessionId }: { sessionId: string }) {
   }, [drafts, persisted, hydrated]);
 
   const hasAtLeastOne = answeredCount > 0;
+  const allAnswered = answeredCount === TOTAL_DIAGNOSTIC_QUESTIONS;
+  const busy = saveState === "saving" || saveState === "generating";
+  const hasInsight = insight?.status === "ready";
 
-  async function handleSubmit(e: React.FormEvent) {
+  function buildPayload() {
+    return DIAGNOSTIC_QUESTIONS.flatMap((q) => {
+      const text = (drafts[q.id] ?? "").trim();
+      return text ? [{ question_id: q.id, answer_text: text }] : [];
+    });
+  }
+
+  async function handleSave(e: React.FormEvent) {
     e.preventDefault();
-    if (!hasAtLeastOne || saveState === "saving") return;
+    if (!hasAtLeastOne || busy) return;
     setSaveState("saving");
     setErrorMsg(null);
     try {
-      const payload = DIAGNOSTIC_QUESTIONS.flatMap((q) => {
-        const text = (drafts[q.id] ?? "").trim();
-        return text ? [{ question_id: q.id, answer_text: text }] : [];
-      });
-      await saveAnswers(sessionId, payload);
+      await saveAnswers(sessionId, buildPayload());
       setSaveState("saved");
     } catch (err) {
       setSaveState("error");
@@ -71,8 +84,30 @@ export function DiagnosticForm({ sessionId }: { sessionId: string }) {
     }
   }
 
+  async function handleGenerate() {
+    if (!allAnswered || busy) return;
+    setErrorMsg(null);
+    try {
+      if (dirty) {
+        setSaveState("saving");
+        await saveAnswers(sessionId, buildPayload());
+      }
+      setSaveState("generating");
+      await generateInsight(sessionId);
+      onInsightStarted?.();
+      setSaveState("saved");
+    } catch (err) {
+      setSaveState("error");
+      setErrorMsg(
+        err instanceof Error
+          ? err.message
+          : "No pudimos generar los insights.",
+      );
+    }
+  }
+
   return (
-    <form className={styles.wrapper} onSubmit={handleSubmit}>
+    <form className={styles.wrapper} onSubmit={handleSave}>
       <div className={styles.progress}>
         <span className={styles.progressLabel}>
           <strong>
@@ -119,19 +154,41 @@ export function DiagnosticForm({ sessionId }: { sessionId: string }) {
             saveState === "error" ? styles.statusError : ""
           }`}
         >
+          {saveState === "saving" && "Guardando…"}
+          {saveState === "generating" && "Generando insights…"}
           {saveState === "saved" && !dirty && "Cambios guardados"}
           {saveState === "error" && (errorMsg ?? "Error al guardar")}
         </span>
-        <button
-          type="submit"
-          className={styles.submit}
-          disabled={!hasAtLeastOne || saveState === "saving" || (!dirty && saveState !== "error")}
-        >
-          {saveState === "saving" && (
-            <Loader2 size={16} strokeWidth={2.25} className={styles.spinner} />
-          )}
-          {saveState === "saving" ? "Guardando…" : "Guardar respuestas"}
-        </button>
+        <div className={styles.actionButtons}>
+          <button
+            type="submit"
+            className={styles.secondary}
+            disabled={!hasAtLeastOne || busy || (!dirty && saveState !== "error")}
+          >
+            {saveState === "saving" && (
+              <Loader2 size={16} strokeWidth={2.25} className={styles.spinner} />
+            )}
+            Guardar
+          </button>
+          <button
+            type="button"
+            className={styles.submit}
+            onClick={handleGenerate}
+            disabled={!allAnswered || busy}
+            title={
+              !allAnswered
+                ? "Responde las 3 preguntas para generar insights"
+                : undefined
+            }
+          >
+            {saveState === "generating" ? (
+              <Loader2 size={16} strokeWidth={2.25} className={styles.spinner} />
+            ) : (
+              <Sparkles size={16} strokeWidth={2.25} />
+            )}
+            {hasInsight ? "Regenerar insights" : "Guardar y generar insights"}
+          </button>
+        </div>
       </div>
     </form>
   );

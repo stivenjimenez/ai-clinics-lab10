@@ -2,6 +2,7 @@ import useSWR, { mutate as globalMutate } from "swr";
 
 import type {
   FormAnswer,
+  Insight,
   Research,
   ResearchStatus,
   Session,
@@ -152,6 +153,61 @@ export async function saveAnswers(sessionId: string, answers: AnswerInput[]) {
     revalidate: false,
   });
   return json;
+}
+
+// ---------- Insights ----------
+
+export function useInsight(sessionId: string | null | undefined) {
+  return useSWR<Insight>(
+    sessionId ? `/sessions/${sessionId}/insights` : null,
+    async (path: string) => {
+      const res = await fetch(`${API_URL}${path}`, { cache: "no-store" });
+      if (res.status === 404) {
+        // Sin insight aún: devolvemos null tipado vía SWR (data === undefined).
+        throw new ApiError(404, null, "no insight yet");
+      }
+      if (!res.ok) {
+        let body: unknown = null;
+        try {
+          body = await res.json();
+        } catch {
+          // ignore
+        }
+        throw new ApiError(res.status, body, `${path} → ${res.status}`);
+      }
+      return res.json() as Promise<Insight>;
+    },
+    {
+      refreshInterval: (latest) =>
+        latest?.status === "generating" ? 4000 : 0,
+      revalidateOnFocus: true,
+      shouldRetryOnError: (err) =>
+        !(err instanceof ApiError && err.status === 404),
+    },
+  );
+}
+
+export async function generateInsight(sessionId: string): Promise<Insight> {
+  const res = await fetch(
+    `${API_URL}/sessions/${sessionId}/insights/generate`,
+    { method: "POST" },
+  );
+  if (!res.ok) {
+    let body: unknown = null;
+    try {
+      body = await res.json();
+    } catch {
+      // ignore
+    }
+    throw new ApiError(
+      res.status,
+      body,
+      `POST /sessions/${sessionId}/insights/generate → ${res.status}`,
+    );
+  }
+  const created = (await res.json()) as Insight;
+  globalMutate(`/sessions/${sessionId}/insights`, created, { revalidate: true });
+  return created;
 }
 
 export { ApiError };
