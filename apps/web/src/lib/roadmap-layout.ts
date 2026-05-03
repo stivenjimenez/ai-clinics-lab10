@@ -1,13 +1,40 @@
 import ELK from "elkjs/lib/elk.bundled.js";
 
-import type { RoadmapEdge, RoadmapNode } from "./roadmap-types";
+import type { RoadmapEdge, RoadmapNode, RoadmapNodeData } from "./roadmap-types";
 
 const elk = new ELK();
 
 const NODE_WIDTH = 260;
-const NODE_HEIGHT = 130;
+// Espacio que el contenido del nodo ocupa además del texto (kind + paddings).
+const NODE_VERTICAL_CHROME = 70;
+// Anchos típicos en píxeles dentro del nodo para estimar saltos de línea.
+const TITLE_CHARS_PER_LINE = 28;
+const DESC_CHARS_PER_LINE = 38;
+const TITLE_LINE_HEIGHT = 20;
+const DESC_LINE_HEIGHT = 18;
 
-// Layout en línea horizontal: cada paso a la derecha del anterior.
+function estimateLines(text: string, charsPerLine: number): number {
+  if (!text) return 1;
+  // Cuenta líneas explícitas más wrap aproximado por longitud.
+  const explicit = text.split("\n");
+  let total = 0;
+  for (const line of explicit) {
+    const len = Math.max(line.length, 1);
+    total += Math.ceil(len / charsPerLine);
+  }
+  return Math.max(total, 1);
+}
+
+function estimateNodeHeight(data: RoadmapNodeData): number {
+  const titleLines = estimateLines(data.title || "", TITLE_CHARS_PER_LINE);
+  const descLines = estimateLines(data.description || "", DESC_CHARS_PER_LINE);
+  return (
+    NODE_VERTICAL_CHROME +
+    titleLines * TITLE_LINE_HEIGHT +
+    descLines * DESC_LINE_HEIGHT
+  );
+}
+
 export async function layoutRoadmap(
   nodes: RoadmapNode[],
   edges: RoadmapEdge[],
@@ -19,13 +46,19 @@ export async function layoutRoadmap(
     layoutOptions: {
       "elk.algorithm": "layered",
       "elk.direction": "DOWN",
-      "elk.layered.spacing.nodeNodeBetweenLayers": "60",
-      "elk.spacing.nodeNode": "32",
+      // Separación vertical entre niveles. Generosa para que descripciones
+      // largas no se solapen y los edges sean visibles.
+      "elk.layered.spacing.nodeNodeBetweenLayers": "80",
+      // Separación horizontal entre nodos del mismo nivel.
+      "elk.spacing.nodeNode": "48",
+      "elk.padding": "[top=24,left=24,bottom=24,right=24]",
     },
     children: nodes.map((n) => ({
       id: n.id,
       width: NODE_WIDTH,
-      height: NODE_HEIGHT,
+      // Alto estimado a partir del contenido — ELK sumará la separación
+      // sobre el alto real de cada nodo, evitando pegamento entre cards.
+      height: estimateNodeHeight(n.data),
     })),
     edges: edges.map((e) => ({
       id: e.id,
