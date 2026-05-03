@@ -1,0 +1,143 @@
+.workspace {
+  display: grid;
+  grid-template-columns: minmax(320px, 380px) 1fr;
+  gap: 18px;
+  align-items: stretch;
+  height: calc(100vh - 200px);
+  min-height: 520px;
+}
+
+.chatColumn {
+  display: flex;
+  flex-direction: column;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  min-height: 0;
+  height: 100%;
+}
+
+.canvasColumn {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  min-width: 0;
+  min-height: 0;
+  height: 100%;
+}
+
+.toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+}
+
+.regen {
+  appearance: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 7px 14px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--foreground);
+  cursor: pointer;
+}
+
+.regen:hover {
+  border-color: var(--foreground);
+}
+
+.regen:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.canvasWrap {
+  flex: 1;
+  min-height: 0;
+}
+
+.statusBlock {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 22px 26px;
+}
+
+.statusBlock p {
+  margin: 6px 0 0;
+  color: var(--foreground-muted);
+  font-size: 14px;
+}
+
+.spinner {
+  color: var(--accent);
+  flex: 0 0 auto;
+  margin-top: 2px;
+  animation: spin 800ms linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.errorBox {
+  background: #ffe2e2;
+  border: 1px solid #f3b9b9;
+  color: #6b0000;
+  padding: 16px 20px;
+  border-radius: var(--radius);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-width: 640px;
+}
+
+.errorBox code {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  word-break: break-word;
+}
+
+.retry {
+  align-self: flex-start;
+  appearance: none;
+  font: inherit;
+  font-weight: 600;
+  font-size: 13px;
+  padding: 8px 16px;
+  border-radius: 999px;
+  border: 1px solid #6b0000;
+  background: transparent;
+  color: #6b0000;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+@media (max-width: 1024px) {
+  .workspace {
+    grid-template-columns: 1fr;
+    height: auto;
+  }
+  .chatColumn {
+    height: 480px;
+  }
+  .canvasColumn {
+    height: auto;
+  }
+  .canvasWrap {
+    min-height: 520px;
+  }
+}

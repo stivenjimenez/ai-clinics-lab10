@@ -545,6 +545,193 @@ async def generate_roadmap(
 
 
 # =====================================================================
+# Chat streaming (Etapa 7) — emite Vercel Data Stream Protocol v1
+# =====================================================================
+
+import sse  # noqa: E402
+
+# Iteraciones máximas del loop tool-calling antes de cortar (defensa).
+MAX_TOOL_ROUNDS = 5
+
+
+async def stream_chat_completion(
+    *,
+    messages: list[dict[str, Any]],
+    tools: list[dict[str, Any]],
+    model: str | None = None,
+):
+    """Itera el loop de chat con OpenRouter (stream + tools) y emite eventos
+    del Vercel AI SDK Data Stream Protocol v1 como strings listos para SSE.
+
+    Args:
+        messages: historial OpenAI-style ya completo (incluye system + user
+            + assistants previos + tool results).
+        tools: array de tools en formato OpenAI (`{type:"function", ...}`).
+        model: id del modelo. Default `OPENROUTER_CHAT_MODEL` o gpt-5.
+
+    Yields:
+        Strings con eventos SSE listos para escribir en la respuesta. Cada
+        string ya termina con `\\n\\n`. NO incluye el `[DONE]` final — eso
+        lo emite el endpoint para tener control sobre la persistencia.
+
+    Si el modelo emite tool_calls, se interrumpe el stream y se devuelven
+    los `tool_calls` pendientes en una excepción especial. El cliente
+    (vía `useChat.onToolCall` + `addToolOutput`) los ejecuta y vuelve a
+    POSTear con el tool_result; ese siguiente request entra acá con un
+    historial extendido y el modelo puede seguir.
+    """
+    api_key = os.environ["OPENROUTER_API_KEY"]
+    chosen_model = model or os.environ.get(
+        "OPENROUTER_CHAT_MODEL",
+        os.environ.get("OPENROUTER_MODEL", "openai/gpt-5").replace(":online", ""),
+    )
+
+    headers = _build_headers(api_key)
+    payload: dict[str, Any] = {
+        "model": chosen_model,
+        "messages": messages,
+        "tools": tools,
+        "stream": True,
+    }
+
+    message_id = sse.make_message_id()
+    yield sse.event_start(message_id)
+
+    # Estado para reensamblar tool_calls fragmentados (vienen por `index`).
+    text_part_id: str | None = None
+    tool_calls_buf: dict[int, dict[str, Any]] = {}
+    tool_input_started: dict[int, bool] = {}
+
+    timeout = httpx.Timeout(120.0, connect=10.0)
+    try:
+        async with httpx.AsyncClient(timeout=timeout) as client:
+            async with client.stream(
+                "POST", OPENROUTER_API_URL, headers=headers, json=payload
+            ) as res:
+                if res.status_code >= 400:
+                    body = await res.aread()
+                    log.error(
+                        "openrouter chat (%s) %s: %s",
+                        chosen_model,
+                        res.status_code,
+                        body[:500],
+                    )
+                    yield sse.event_error(
+                        f"openrouter {res.status_code}"
+                    )
+                    return
+
+                async for raw_line in res.aiter_lines():
+                    if not raw_line:
+                        continue
+                    if not raw_line.startswith("data:"):
+                        continue
+                    data_str = raw_line[5:].strip()
+                    if not data_str:
+                        continue
+                    if data_str == "[DONE]":
+                        break
+                    try:
+                        chunk = json.loads(data_str)
+                    except json.JSONDecodeError:
+                        log.warning("openrouter chunk not JSON: %r", data_str[:200])
+                        continue
+
+                    choice = (chunk.get("choices") or [{}])[0]
+                    delta = choice.get("delta") or {}
+
+                    # 1) Texto plano
+                    text_delta = delta.get("content")
+                    if text_delta:
+                        if text_part_id is None:
+                            text_part_id = sse.make_text_part_id()
+                            yield sse.event_text_start(text_part_id)
+                        yield sse.event_text_delta(text_part_id, text_delta)
+
+                    # 2) Tool calls fragmentados
+                    for tc in delta.get("tool_calls") or []:
+                        idx = tc.get("index", 0)
+                        buf = tool_calls_buf.setdefault(
+                            idx,
+                            {
+                                "id": None,
+                                "name": None,
+                                "args": "",
+                            },
+                        )
+                        if tc.get("id"):
+                            buf["id"] = tc["id"]
+                        fn = tc.get("function") or {}
+                        if fn.get("name"):
+                            buf["name"] = fn["name"]
+                        if fn.get("arguments"):
+                            buf["args"] += fn["arguments"]
+
+                        # Empezar el part en cuanto sepamos id+name
+                        if (
+                            buf["id"]
+                            and buf["name"]
+                            and not tool_input_started.get(idx)
+                        ):
+                            tool_input_started[idx] = True
+                            yield sse.event_tool_input_start(
+                                buf["id"], buf["name"]
+                            )
+
+                        if (
+                            tool_input_started.get(idx)
+                            and fn.get("arguments")
+                        ):
+                            yield sse.event_tool_input_delta(
+                                buf["id"], fn["arguments"]
+                            )
+
+                    finish_reason = choice.get("finish_reason")
+                    if finish_reason == "tool_calls":
+                        # Cerrar text part si quedó abierto.
+                        if text_part_id is not None:
+                            yield sse.event_text_end(text_part_id)
+                            text_part_id = None
+                        # Emitir `tool-input-available` con el JSON parseado
+                        # para que el cliente arranque `onToolCall`.
+                        for idx, buf in sorted(tool_calls_buf.items()):
+                            try:
+                                parsed = json.loads(buf["args"] or "{}")
+                            except json.JSONDecodeError as e:
+                                log.error(
+                                    "tool args not JSON for %s: %r",
+                                    buf.get("name"),
+                                    buf.get("args"),
+                                )
+                                yield sse.event_error(
+                                    f"tool args parse error: {e}"
+                                )
+                                continue
+                            yield sse.event_tool_input_available(
+                                buf["id"], buf["name"], parsed
+                            )
+                        # No emitimos `finish` acá: el turno cierra cuando
+                        # el cliente reenvíe el tool_result en otro POST.
+                        # Solo cerramos este HTTP stream.
+                        return
+
+                    if finish_reason in ("stop", "length", "content_filter"):
+                        if text_part_id is not None:
+                            yield sse.event_text_end(text_part_id)
+                            text_part_id = None
+                        yield sse.event_finish()
+                        return
+
+        # Stream terminó sin finish_reason explícito.
+        if text_part_id is not None:
+            yield sse.event_text_end(text_part_id)
+        yield sse.event_finish()
+    except Exception as e:  # pragma: no cover
+        log.exception("stream_chat_completion failed")
+        yield sse.event_error(str(e)[:300])
+
+
+# =====================================================================
 # Internals
 # =====================================================================
 

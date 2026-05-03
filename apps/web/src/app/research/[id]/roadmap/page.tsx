@@ -4,7 +4,7 @@ import Link from "next/link";
 import { use } from "react";
 import { ArrowLeft } from "lucide-react";
 
-import { RoadmapView } from "@/components/roadmap-view";
+import { RoadmapWorkspace } from "@/components/roadmap-workspace";
 import { SiteHeader } from "@/components/site-header";
 import { useResearch, useSessionForResearch } from "@/lib/api";
 
@@ -38,7 +38,7 @@ export default function RoadmapPage({
         </header>
 
         {session ? (
-          <RoadmapView sessionId={session.id} />
+          <RoadmapWorkspace sessionId={session.id} />
         ) : (
           <div className={styles.errorBox}>
             No encontramos la sesión asociada a este research.
