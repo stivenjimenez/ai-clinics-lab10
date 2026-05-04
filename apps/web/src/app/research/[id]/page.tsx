@@ -7,7 +7,6 @@ import { ArrowLeft, ExternalLink, Loader2, RefreshCw } from "lucide-react";
 
 import { DiagnosticForm } from "@/components/diagnostic-form";
 import { InsightsView } from "@/components/insights-view";
-import { SiteHeader } from "@/components/site-header";
 import { StatusBadge } from "@/components/status-badge";
 import { Tabs, type TabItem } from "@/components/tabs";
 import {
@@ -98,7 +97,6 @@ export default function ResearchDetailPage({
 
   return (
     <>
-      <SiteHeader />
       <main className={styles.main}>
         <div className={styles.topBar}>
           <Link href="/" className={styles.backLink}>

@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import { Search, Plus } from "lucide-react";
 
-import { SiteHeader } from "@/components/site-header";
+
 import { KpiCard } from "@/components/kpi-card";
 import { ResearchTable } from "@/components/research-table";
 import { NewResearchModal } from "@/components/new-research-modal";
@@ -94,7 +94,7 @@ export default function HomePage() {
 
   return (
     <>
-      <SiteHeader />
+
       <main className={styles.main}>
         <h1 className={styles.title}>Research</h1>
 

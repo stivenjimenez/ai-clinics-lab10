@@ -5,7 +5,6 @@ import { use } from "react";
 import { ArrowLeft } from "lucide-react";
 
 import { RoadmapWorkspace } from "@/components/roadmap-workspace";
-import { SiteHeader } from "@/components/site-header";
 import { useResearch, useSessionForResearch } from "@/lib/api";
 
 import styles from "./page.module.css";
@@ -22,8 +21,7 @@ export default function RoadmapPage({
   const company = research?.company_name ?? "";
 
   return (
-    <>
-      <SiteHeader />
+    
       <main className={styles.main}>
         <div className={styles.topBar}>
           <Link href={`/research/${id}`} className={styles.backLink}>
@@ -45,6 +43,6 @@ export default function RoadmapPage({
           </div>
         )}
       </main>
-    </>
+    
   );
 }
