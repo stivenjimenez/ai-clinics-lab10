@@ -154,6 +154,37 @@
   font-family: var(--font-mono);
 }
 
+.regenerateRow {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 12px;
+}
+
+.regenerateButton {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--foreground);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.regenerateButton:hover:not(:disabled) {
+  background: var(--surface-hover, #f4f4f5);
+  border-color: var(--foreground);
+}
+
+.regenerateButton:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
 /* ---------- Skeletons ---------- */
 
 .skeletonStack {

@@ -3,7 +3,7 @@
 import { use, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, ExternalLink, Loader2 } from "lucide-react";
+import { ArrowLeft, ExternalLink, Loader2, RefreshCw } from "lucide-react";
 
 import { DiagnosticForm } from "@/components/diagnostic-form";
 import { InsightsView } from "@/components/insights-view";
@@ -11,6 +11,7 @@ import { SiteHeader } from "@/components/site-header";
 import { StatusBadge } from "@/components/status-badge";
 import { Tabs, type TabItem } from "@/components/tabs";
 import {
+  regenerateResearch,
   useAnswers,
   useInsight,
   useResearch,
@@ -41,7 +42,30 @@ export default function ResearchDetailPage({
   const { data: insight } = useInsight(session?.id);
 
   const [tab, setTab] = useState<DetailTabId>("brief");
+  const [regenerating, setRegenerating] = useState(false);
   const hasInsight = Boolean(insight);
+
+  async function handleRegenerate() {
+    if (regenerating) return;
+    const hasSession = Boolean(session);
+    if (
+      hasSession &&
+      !window.confirm(
+        "Esto generará un dossier nuevo. Tus respuestas, insights y roadmap se conservan.",
+      )
+    ) {
+      return;
+    }
+    setRegenerating(true);
+    try {
+      await regenerateResearch(id);
+    } catch (err) {
+      console.error(err);
+      window.alert("No pudimos regenerar el research. Intenta de nuevo.");
+    } finally {
+      setRegenerating(false);
+    }
+  }
 
   function handleTabChange(next: TabId) {
     if (next === "roadmap") {
@@ -153,6 +177,17 @@ export default function ResearchDetailPage({
                   <div className={styles.errorBox}>
                     <strong>El research falló.</strong>
                     <p className={styles.errorMessage}>{data.error_message}</p>
+                    <div className={styles.regenerateRow}>
+                      <button
+                        type="button"
+                        className={styles.regenerateButton}
+                        onClick={handleRegenerate}
+                        disabled={regenerating}
+                      >
+                        <RefreshCw size={14} strokeWidth={2} />
+                        {regenerating ? "Regenerando…" : "Regenerar dossier"}
+                      </button>
+                    </div>
                   </div>
                 )}
 
@@ -160,6 +195,17 @@ export default function ResearchDetailPage({
                   <section className={styles.summaryCard}>
                     <h2 className={styles.cardTitle}>Resumen de la empresa</h2>
                     <p className={styles.summary}>{data.dossier.summary}</p>
+                    <div className={styles.regenerateRow}>
+                      <button
+                        type="button"
+                        className={styles.regenerateButton}
+                        onClick={handleRegenerate}
+                        disabled={regenerating}
+                      >
+                        <RefreshCw size={14} strokeWidth={2} />
+                        {regenerating ? "Regenerando…" : "Regenerar dossier"}
+                      </button>
+                    </div>
                   </section>
                 )}
               </>

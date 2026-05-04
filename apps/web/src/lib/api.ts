@@ -105,6 +105,33 @@ export async function createResearch(
   return created;
 }
 
+export async function regenerateResearch(id: string): Promise<Research> {
+  const res = await fetch(`${API_URL}/research/${id}/regenerate`, {
+    method: "POST",
+  });
+  if (!res.ok) {
+    let body: unknown = null;
+    try {
+      body = await res.json();
+    } catch {
+      // ignore
+    }
+    throw new ApiError(
+      res.status,
+      body,
+      `POST /research/${id}/regenerate → ${res.status}`,
+    );
+  }
+  const updated = (await res.json()) as Research;
+  globalMutate(`/research/${id}`, updated, { revalidate: true });
+  globalMutate(
+    (key) => typeof key === "string" && key.startsWith("/research?"),
+    undefined,
+    { revalidate: true },
+  );
+  return updated;
+}
+
 // ---------- Sessions / answers ----------
 
 export function useSessionForResearch(researchId: string | null | undefined) {
