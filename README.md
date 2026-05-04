@@ -21,6 +21,14 @@ ai-clinics-lab10/
 
 ## Desarrollo local
 
+### Correr todo (frontend + backend)
+
+```bash
+./scripts/dev.sh
+```
+
+Levanta el backend en `http://localhost:8000` y el frontend en `http://localhost:3000` en paralelo. `Ctrl+C` detiene ambos. Requiere que el venv de Python ya exista en `apps/api/.venv` y las dependencias de `apps/web` estén instaladas (ver pasos abajo).
+
 ### Frontend
 
 ```bash
