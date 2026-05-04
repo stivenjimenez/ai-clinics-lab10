@@ -14,6 +14,10 @@ import httpx
 
 OPENROUTER_API_URL = "https://openrouter.ai/api/v1/chat/completions"
 
+# Modelos fijos — cambiarlos aquí cuando se quiera actualizar.
+DOSSIER_MODEL = "openai/gpt-5:online"   # usa búsqueda web para investigar la empresa
+ANALYSIS_MODEL = "openai/gpt-5"         # insights, roadmap y chat (sin búsqueda web)
+
 log = logging.getLogger("ai-clinics-api")
 
 # Schema obligatorio del dossier que devuelve el LLM. Lo usamos como
@@ -90,7 +94,7 @@ async def generate_dossier(
 ) -> dict[str, Any]:
     """Llama a OpenRouter y devuelve el dossier ya parseado como dict."""
     api_key = os.environ["OPENROUTER_API_KEY"]
-    model = os.environ.get("OPENROUTER_MODEL", "openai/gpt-5:online")
+    model = DOSSIER_MODEL
 
     headers = _build_headers(api_key)
     payload = {
@@ -301,12 +305,7 @@ async def generate_insights(
 ) -> tuple[dict[str, Any], str]:
     """Llama al LLM y devuelve (payload, model_id) listos para persistir."""
     api_key = os.environ["OPENROUTER_API_KEY"]
-    # Para insights no necesitamos `:online`: trabajamos sobre el dossier y las
-    # respuestas, no con búsqueda web. Si no se setea, caemos a un default sin sufijo.
-    model = os.environ.get(
-        "OPENROUTER_INSIGHTS_MODEL",
-        os.environ.get("OPENROUTER_MODEL", "openai/gpt-5").replace(":online", ""),
-    )
+    model = ANALYSIS_MODEL
 
     headers = _build_headers(api_key)
     payload = {
@@ -513,11 +512,7 @@ async def generate_roadmap(
 ) -> tuple[dict[str, Any], str]:
     """Llama al LLM y devuelve (payload, model_id) listos para persistir."""
     api_key = os.environ["OPENROUTER_API_KEY"]
-    # Mismo criterio que insights: sin búsqueda web; el contexto ya está en el prompt.
-    model = os.environ.get(
-        "OPENROUTER_ROADMAP_MODEL",
-        os.environ.get("OPENROUTER_MODEL", "openai/gpt-5").replace(":online", ""),
-    )
+    model = ANALYSIS_MODEL
 
     headers = _build_headers(api_key)
     payload = {
@@ -567,7 +562,7 @@ async def stream_chat_completion(
         messages: historial OpenAI-style ya completo (incluye system + user
             + assistants previos + tool results).
         tools: array de tools en formato OpenAI (`{type:"function", ...}`).
-        model: id del modelo. Default `OPENROUTER_CHAT_MODEL` o gpt-5.
+        model: id del modelo. Default `ANALYSIS_MODEL`.
 
     Yields:
         Strings con eventos SSE listos para escribir en la respuesta. Cada
@@ -581,10 +576,7 @@ async def stream_chat_completion(
     historial extendido y el modelo puede seguir.
     """
     api_key = os.environ["OPENROUTER_API_KEY"]
-    chosen_model = model or os.environ.get(
-        "OPENROUTER_CHAT_MODEL",
-        os.environ.get("OPENROUTER_MODEL", "openai/gpt-5").replace(":online", ""),
-    )
+    chosen_model = model or ANALYSIS_MODEL
 
     headers = _build_headers(api_key)
     payload: dict[str, Any] = {
