@@ -93,10 +93,20 @@ async def _run_research(research_id: str, payload: ResearchCreate) -> None:
         supabase.table("research").update(
             {"status": "ready", "dossier": dossier, "error_message": None}
         ).eq("id", research_id).execute()
-        supabase.table("sessions").insert(
-            {"research_id": research_id, "status": "draft"}
-        ).execute()
-        logger.info("research %s: persisted as ready + session created", research_id)
+        existing = (
+            supabase.table("sessions")
+            .select("id")
+            .eq("research_id", research_id)
+            .limit(1)
+            .execute()
+        )
+        if not existing.data:
+            supabase.table("sessions").insert(
+                {"research_id": research_id, "status": "draft"}
+            ).execute()
+            logger.info("research %s: persisted as ready + session created", research_id)
+        else:
+            logger.info("research %s: dossier regenerated, session preserved", research_id)
     except Exception as e:
         logger.exception("research %s failed", research_id)
         try:
@@ -156,6 +166,39 @@ async def create_research(payload: ResearchCreate, background: BackgroundTasks):
     row = insert.data[0]
     background.add_task(_run_research, row["id"], payload)
     return row
+
+
+@app.post("/research/{research_id}/regenerate", status_code=202)
+async def regenerate_research(research_id: str, background: BackgroundTasks):
+    res = (
+        supabase.table("research")
+        .select("*")
+        .eq("id", research_id)
+        .maybe_single()
+        .execute()
+    )
+    if not res.data:
+        raise HTTPException(status_code=404, detail="research not found")
+    if res.data["status"] == "researching":
+        raise HTTPException(
+            status_code=409,
+            detail="research is already running",
+        )
+
+    payload = ResearchCreate(
+        company_name=res.data["company_name"],
+        website=res.data.get("website"),
+        linkedin=res.data.get("linkedin"),
+        notes=res.data.get("notes"),
+    )
+    updated = (
+        supabase.table("research")
+        .update({"status": "researching", "error_message": None})
+        .eq("id", research_id)
+        .execute()
+    )
+    background.add_task(_run_research, research_id, payload)
+    return updated.data[0]
 
 
 # ---------- Sessions ----------
