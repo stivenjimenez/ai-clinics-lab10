@@ -35,7 +35,7 @@ type FlowNode = Node<RoadmapNodeData, RoadmapNodeType>;
 type FlowEdge = Edge;
 
 function RoadmapStepNode({ data, type, selected }: NodeProps<FlowNode>) {
-  const kind = (type as RoadmapNodeType) ?? "action";
+  const kind = (type as RoadmapNodeType) ?? "step";
   return (
     <div
       className={`${styles.node}${selected ? ` ${styles.selected}` : ""}`}
@@ -52,8 +52,8 @@ function RoadmapStepNode({ data, type, selected }: NodeProps<FlowNode>) {
 
 const nodeTypes = {
   problem: RoadmapStepNode,
-  action: RoadmapStepNode,
-  milestone: RoadmapStepNode,
+  step: RoadmapStepNode,
+  result: RoadmapStepNode,
 };
 
 function toFlow(nodes: RoadmapNode[], edges: RoadmapEdge[]): {
@@ -133,7 +133,7 @@ function RoadmapCanvasInner({
     setNodes((current) => {
       const next: RoadmapNode[] = current.map((n) => ({
         id: n.id,
-        type: (n.type as RoadmapNodeType) ?? "action",
+        type: (n.type as RoadmapNodeType) ?? "step",
         data: n.data as RoadmapNodeData,
         position: { x: n.position.x, y: n.position.y },
       }));

@@ -106,13 +106,7 @@ function RoadmapBody({
           strokeWidth={2.25}
           aria-hidden
         />
-        <div>
-          <strong>Generando roadmap…</strong>
-          <p>
-            Estamos armando los pasos a partir del dossier, las respuestas y los
-            insights. Suele tardar 30-60 segundos.
-          </p>
-        </div>
+        <strong>Generando roadmap…</strong>
       </div>
     );
   }

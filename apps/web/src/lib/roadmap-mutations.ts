@@ -36,7 +36,7 @@ function rebuildEdges(chain: string[]): RoadmapEdge[] {
 
 export type AddNodeArgs = {
   id: string;
-  type: "action" | "milestone";
+  type: "step" | "result";
   title: string;
   description: string;
   after_id: string;

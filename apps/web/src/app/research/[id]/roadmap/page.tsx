@@ -21,7 +21,6 @@ export default function RoadmapPage({
   const company = research?.company_name ?? "";
 
   return (
-    
       <main className={styles.main}>
         <div className={styles.topBar}>
           <Link href={`/research/${id}`} className={styles.backLink}>
@@ -30,19 +29,19 @@ export default function RoadmapPage({
           </Link>
         </div>
 
-        <header className={styles.header}>
-          <span className={styles.eyebrow}>Roadmap</span>
-          <h1 className={styles.title}>{company}</h1>
-        </header>
-
         {session ? (
-          <RoadmapWorkspace sessionId={session.id} />
+          <RoadmapWorkspace sessionId={session.id} companyName={company} />
         ) : (
-          <div className={styles.errorBox}>
-            No encontramos la sesión asociada a este research.
-          </div>
+          <>
+            <header style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+              <span style={{ letterSpacing: "0.18em", fontSize: 11, color: "var(--foreground-muted)", textTransform: "uppercase", fontWeight: 700 }}>Roadmap</span>
+              <h1 style={{ margin: 0, fontSize: 26, letterSpacing: "-0.01em" }}>{company}</h1>
+            </header>
+            <div className={styles.errorBox}>
+              No encontramos la sesión asociada a este research.
+            </div>
+          </>
         )}
       </main>
-    
   );
 }

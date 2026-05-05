@@ -20,6 +20,33 @@
   padding: 16px 24px;
   background: var(--surface-muted);
   border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+  user-select: none;
+}
+
+.thSortable {
+  cursor: pointer;
+}
+
+.thSortable:hover {
+  color: var(--foreground);
+}
+
+.thInner {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.sortIcon {
+  display: inline-flex;
+  align-items: center;
+  color: var(--foreground);
+}
+
+.sortIconIdle {
+  color: var(--foreground-muted);
+  opacity: 0.5;
 }
 
 .row {

@@ -3,14 +3,16 @@
 import { use, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, ExternalLink, Loader2, RefreshCw } from "lucide-react";
+import { ArrowLeft, ArrowRight, ExternalLink, Loader2, RotateCw } from "lucide-react";
 
 import { DiagnosticForm } from "@/components/diagnostic-form";
 import { InsightsView } from "@/components/insights-view";
 import { StatusBadge } from "@/components/status-badge";
 import { Tabs, type TabItem } from "@/components/tabs";
 import {
+  generateInsight,
   regenerateResearch,
+  saveAnswers,
   useAnswers,
   useInsight,
   useResearch,
@@ -42,6 +44,7 @@ export default function ResearchDetailPage({
 
   const [tab, setTab] = useState<DetailTabId>("brief");
   const [regenerating, setRegenerating] = useState(false);
+  const [liveAnsweredCount, setLiveAnsweredCount] = useState<number | null>(null);
   const hasInsight = Boolean(insight);
 
   async function handleRegenerate() {
@@ -74,9 +77,10 @@ export default function ResearchDetailPage({
     setTab(next);
   }
 
-  const answeredCount = (answers ?? []).filter((a) =>
+  const serverAnsweredCount = (answers ?? []).filter((a) =>
     DIAGNOSTIC_QUESTIONS.some((q) => q.id === a.question_id && a.answer_text.trim()),
   ).length;
+  const answeredCount = liveAnsweredCount ?? serverAnsweredCount;
 
   const tabs: TabItem<TabId>[] = [
     { id: "brief", label: "Brief" },
@@ -103,7 +107,7 @@ export default function ResearchDetailPage({
             <ArrowLeft size={16} strokeWidth={2} />
             <span>Volver a research</span>
           </Link>
-          {data && <StatusBadge status={data.status} />}
+          {data && <StatusBadge research={data} />}
         </div>
 
         {error && (
@@ -145,10 +149,51 @@ export default function ResearchDetailPage({
               </div>
             </header>
 
-            <Tabs items={tabs} active={tab} onChange={handleTabChange} ariaLabel="Secciones del research" />
+            <div className={styles.tabsRow}>
+              <Tabs items={tabs} active={tab} onChange={handleTabChange} ariaLabel="Secciones del research" />
+              {tab === "brief" && data.status === "ready" && (
+                <button
+                  type="button"
+                  className={styles.continueButton}
+                  onClick={() => setTab("diagnostic")}
+                >
+                  Continuar con diagnóstico
+                  <ArrowRight size={15} strokeWidth={2.25} />
+                </button>
+              )}
+              {tab === "diagnostic" && session && (
+                hasInsight ? (
+                  <button
+                    type="button"
+                    className={styles.continueButton}
+                    onClick={() => setTab("insights")}
+                  >
+                    Ver insights
+                    <ArrowRight size={15} strokeWidth={2.25} />
+                  </button>
+                ) : (
+                  <ContinueToInsightsButton
+                    sessionId={session.id}
+                    answeredCount={answeredCount}
+                    onInsightStarted={() => setTab("insights")}
+                  />
+                )
+              )}
+              {tab === "insights" && session && (
+                <button
+                  type="button"
+                  className={styles.continueButton}
+                  onClick={() => router.push(`/research/${id}/roadmap`)}
+                >
+                  Continuar con roadmap
+                  <ArrowRight size={15} strokeWidth={2.25} />
+                </button>
+              )}
+            </div>
 
             {tab === "brief" && (
               <>
+
                 {data.notes && (
                   <section className={styles.notesCard}>
                     <h2 className={styles.cardTitle}>Observaciones del facilitador</h2>
@@ -159,13 +204,7 @@ export default function ResearchDetailPage({
                 {data.status === "researching" && (
                   <div className={styles.researching}>
                     <Loader2 className={styles.spinner} size={22} strokeWidth={2.25} aria-hidden />
-                    <div>
-                      <strong>El agente está investigando…</strong>
-                      <p>
-                        Estamos consultando fuentes web. Esto puede tardar 2–4 minutos.
-                        La página se actualiza sola.
-                      </p>
-                    </div>
+                    <strong>El agente está investigando…</strong>
                   </div>
                 )}
 
@@ -182,7 +221,7 @@ export default function ResearchDetailPage({
                         onClick={handleRegenerate}
                         disabled={regenerating}
                       >
-                        <RefreshCw size={14} strokeWidth={2} />
+                        <RotateCw size={14} strokeWidth={2.25} />
                         {regenerating ? "Regenerando…" : "Regenerar dossier"}
                       </button>
                     </div>
@@ -190,21 +229,23 @@ export default function ResearchDetailPage({
                 )}
 
                 {data.status === "ready" && data.dossier && (
+                  <>
                   <section className={styles.summaryCard}>
                     <h2 className={styles.cardTitle}>Resumen de la empresa</h2>
                     <p className={styles.summary}>{data.dossier.summary}</p>
-                    <div className={styles.regenerateRow}>
+                  </section>
+                  <div className={styles.regenerateRow}>
                       <button
                         type="button"
                         className={styles.regenerateButton}
                         onClick={handleRegenerate}
                         disabled={regenerating}
                       >
-                        <RefreshCw size={14} strokeWidth={2} />
+                        <RotateCw size={14} strokeWidth={2.25} />
                         {regenerating ? "Regenerando…" : "Regenerar dossier"}
                       </button>
                     </div>
-                  </section>
+                  </>
                 )}
               </>
             )}
@@ -213,6 +254,7 @@ export default function ResearchDetailPage({
               <DiagnosticForm
                 sessionId={session.id}
                 onInsightStarted={() => setTab("insights")}
+                onAnsweredCountChange={setLiveAnsweredCount}
               />
             )}
 
@@ -226,15 +268,51 @@ export default function ResearchDetailPage({
             )}
 
             {tab === "insights" && session && (
-              <InsightsView
-                sessionId={session.id}
-                onOpenRoadmap={() => router.push(`/research/${id}/roadmap`)}
-              />
+              <InsightsView sessionId={session.id} />
             )}
           </>
         )}
       </main>
     </>
+  );
+}
+
+function ContinueToInsightsButton({
+  sessionId,
+  answeredCount,
+  onInsightStarted,
+}: {
+  sessionId: string;
+  answeredCount: number;
+  onInsightStarted: () => void;
+}) {
+  const [busy, setBusy] = useState(false);
+  const allAnswered = answeredCount === TOTAL_DIAGNOSTIC_QUESTIONS;
+
+  async function handle() {
+    if (!allAnswered || busy) return;
+    setBusy(true);
+    try {
+      await generateInsight(sessionId);
+      onInsightStarted();
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <button
+      type="button"
+      className={styles.continueButton}
+      onClick={handle}
+      disabled={!allAnswered || busy}
+    >
+      {busy && <Loader2 size={15} strokeWidth={2.25} className={styles.spinnerInline} />}
+      Continuar con insights
+      {!busy && <ArrowRight size={15} strokeWidth={2.25} />}
+    </button>
   );
 }
 

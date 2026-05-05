@@ -1,44 +1,73 @@
 import { Circle } from "lucide-react";
 
 import styles from "./status-badge.module.css";
-import type { ResearchStatus } from "@/lib/types";
+import type { Research, ResearchStatus } from "@/lib/types";
 
-type DerivedStatus =
+type FlowStatus =
   | "pending"
   | "researching"
-  | "ready"
   | "failed"
-  | "session_draft"
-  | "session_in_progress"
-  | "roadmap_done";
+  | "brief_ready"
+  | "in_diagnostic"
+  | "insight_ready"
+  | "roadmap_ready";
 
-const LABELS: Record<DerivedStatus, string> = {
-  pending: "Pendiente",
-  researching: "Investigando…",
-  ready: "Research completado",
-  failed: "Falló",
-  session_draft: "Sesión en draft",
-  session_in_progress: "Sesión en progreso",
-  roadmap_done: "Roadmap generado",
+const LABELS: Record<FlowStatus, string> = {
+  pending:       "Pendiente",
+  researching:   "Investigando…",
+  failed:        "Falló",
+  brief_ready:   "Brief listo",
+  in_diagnostic: "En diagnóstico",
+  insight_ready: "Insights listos",
+  roadmap_ready: "Roadmap listo",
 };
 
-const VARIANT: Record<DerivedStatus, string> = {
-  pending: styles.neutral,
-  researching: styles.warning,
-  ready: styles.info,
-  failed: styles.danger,
-  session_draft: styles.outline,
-  session_in_progress: styles.success,
-  roadmap_done: styles.black,
+const VARIANT: Record<FlowStatus, string> = {
+  pending:       styles.neutral,
+  researching:   styles.warning,
+  failed:        styles.danger,
+  brief_ready:   styles.info,
+  in_diagnostic: styles.outline,
+  insight_ready: styles.success,
+  roadmap_ready: styles.black,
 };
 
-export function StatusBadge({ status }: { status: ResearchStatus | DerivedStatus }) {
-  const key = status as DerivedStatus;
-  const label = LABELS[key] ?? status;
-  const variant = VARIANT[key] ?? styles.neutral;
+function deriveFlow(
+  status: ResearchStatus,
+  has_answers: boolean,
+  has_insight: boolean,
+  has_roadmap: boolean,
+): FlowStatus {
+  if (status === "pending")     return "pending";
+  if (status === "researching") return "researching";
+  if (status === "failed")      return "failed";
+  // status === "ready"
+  if (has_roadmap) return "roadmap_ready";
+  if (has_insight) return "insight_ready";
+  if (has_answers) return "in_diagnostic";
+  return "brief_ready";
+}
+
+type Props =
+  | { research: Pick<Research, "status" | "has_answers" | "has_insight" | "has_roadmap"> }
+  | { status: ResearchStatus };
+
+export function StatusBadge(props: Props) {
+  let flow: FlowStatus;
+
+  if ("research" in props) {
+    const { status, has_answers, has_insight, has_roadmap } = props.research;
+    flow = deriveFlow(status, has_answers, has_insight, has_roadmap);
+  } else {
+    flow = deriveFlow(props.status, false, false, false);
+  }
+
+  const label = LABELS[flow];
+  const variant = VARIANT[flow];
+
   return (
     <span className={`${styles.badge} ${variant}`}>
-      {key === "session_in_progress" && (
+      {flow === "researching" && (
         <Circle className={styles.dot} size={8} strokeWidth={0} fill="currentColor" aria-hidden />
       )}
       {label}

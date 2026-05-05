@@ -117,6 +117,52 @@
   text-transform: uppercase;
 }
 
+/* ---------- Quick win ---------- */
+
+.quickWinSection {
+  border-left: 3px solid var(--accent);
+}
+
+.quickWinDesc {
+  margin: 0;
+  font-size: 15px;
+  line-height: 1.6;
+  font-weight: 600;
+  color: var(--foreground);
+}
+
+.quickWinMeta {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+}
+
+@media (max-width: 640px) {
+  .quickWinMeta {
+    grid-template-columns: 1fr;
+  }
+}
+
+.quickWinMetaItem {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.metaLabel {
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  font-weight: 600;
+  color: var(--foreground-muted);
+}
+
+.metaValue {
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--foreground);
+}
+
 /* ---------- Oportunidades ---------- */
 
 .section {
@@ -160,6 +206,14 @@
   display: flex;
   flex-direction: column;
   gap: 10px;
+}
+
+.opportunityCategory {
+  font-size: 10px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  font-weight: 700;
+  color: var(--accent);
 }
 
 .opportunityTitle {
@@ -270,6 +324,41 @@
 
 .ctaButton:hover {
   opacity: 0.88;
+}
+
+/* ---------- Regenerar ---------- */
+
+.regenRow {
+  display: flex;
+  justify-content: flex-end;
+  padding-top: 4px;
+}
+
+.regenBtn {
+  appearance: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  padding: 8px 16px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--foreground-muted);
+  cursor: pointer;
+  transition: color 120ms ease, border-color 120ms ease;
+}
+
+.regenBtn:hover:not(:disabled) {
+  color: var(--foreground);
+  border-color: var(--foreground);
+}
+
+.regenBtn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
 }
 
 /* ---------- Estados ---------- */

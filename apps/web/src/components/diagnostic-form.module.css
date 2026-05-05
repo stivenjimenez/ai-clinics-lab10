@@ -111,12 +111,6 @@
   color: #b00000;
 }
 
-.actionButtons {
-  display: inline-flex;
-  align-items: center;
-  gap: 10px;
-}
-
 .submit,
 .secondary {
   appearance: none;

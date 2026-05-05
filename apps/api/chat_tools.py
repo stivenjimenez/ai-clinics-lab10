@@ -21,10 +21,9 @@ CHAT_TOOLS: list[dict[str, Any]] = [
         "function": {
             "name": "add_node",
             "description": (
-                "Inserta un nuevo paso (action o milestone) después de "
-                "`after_id` en la cadena lineal. Reconecta los edges para "
-                "preservar la secuencia. Útil cuando el ejecutivo pide "
-                "agregar un paso intermedio."
+                "Inserta un nuevo paso de implementación de IA (step) o el nodo "
+                "de resultado final (result) después de `after_id` en la cadena "
+                "lineal. Reconecta los edges para preservar la secuencia."
             ),
             "parameters": {
                 "type": "object",
@@ -40,10 +39,10 @@ CHAT_TOOLS: list[dict[str, Any]] = [
                     },
                     "type": {
                         "type": "string",
-                        "enum": ["action", "milestone"],
+                        "enum": ["step", "result"],
                         "description": (
-                            "'action' = paso que se hace; 'milestone' = "
-                            "checkpoint donde se valida progreso."
+                            "'step' = paso de implementación de IA; "
+                            "'result' = nodo final con el impacto medible logrado."
                         ),
                     },
                     "title": {
@@ -71,7 +70,7 @@ CHAT_TOOLS: list[dict[str, Any]] = [
             "name": "update_node",
             "description": (
                 "Edita el título, descripción o tipo de un nodo existente "
-                "(action o milestone). No permite cambiar el `id` ni editar "
+                "(step o result). No permite cambiar el `id` ni editar "
                 "el nodo 'problem' (usar `update_problem` para eso)."
             ),
             "parameters": {
@@ -84,7 +83,7 @@ CHAT_TOOLS: list[dict[str, Any]] = [
                     "description": {"type": "string"},
                     "type": {
                         "type": "string",
-                        "enum": ["action", "milestone"],
+                        "enum": ["step", "result"],
                     },
                 },
             },
@@ -95,7 +94,7 @@ CHAT_TOOLS: list[dict[str, Any]] = [
         "function": {
             "name": "remove_node",
             "description": (
-                "Elimina un nodo (action o milestone) y reconecta sus "
+                "Elimina un nodo (step o result) y reconecta sus "
                 "vecinos para preservar la cadena lineal. Rechaza si el id "
                 "es 'problem'."
             ),
@@ -140,7 +139,7 @@ CHAT_TOOLS: list[dict[str, Any]] = [
             "name": "update_problem",
             "description": (
                 "Edita el título y/o descripción del nodo 'problem' (el "
-                "dolor inicial). No permite cambiar su id ni su tipo."
+                "dolor inicial del negocio). No permite cambiar su id ni su tipo."
             ),
             "parameters": {
                 "type": "object",
@@ -156,28 +155,32 @@ CHAT_TOOLS: list[dict[str, Any]] = [
 
 
 CHAT_SYSTEM_PROMPT_TEMPLATE = """Eres asistente del facilitador de Lab10 refinando \
-en vivo un roadmap de adopción de IA durante una sesión de 30 minutos del AI \
+en vivo un roadmap de implementación de IA durante una sesión de 30 minutos del AI \
 Summit LATAM. El facilitador y el ejecutivo están conversando contigo para \
-ajustar el roadmap.
+ajustar el plan de acción.
+
+El roadmap tiene esta estructura:
+- UN nodo `problem`: el dolor de negocio a resolver.
+- Nodos `step`: pasos de implementación de IA concretos y ejecutables.
+- UN nodo `result` al final: el impacto medible que se logra al completar los pasos.
 
 Tienes 5 tools para mutar el roadmap: `add_node`, `update_node`, `remove_node`, \
 `reorder_nodes`, `update_problem`. Cuando el usuario pida cualquier cambio sobre \
 el roadmap, USA SIEMPRE las tools — nunca describas el cambio en texto.
 
-Si la pregunta es conceptual (qué significa un nodo, por qué se priorizó X, qué \
-implica un milestone), responde en texto sin usar tools.
+Si la pregunta es conceptual (qué significa un nodo, por qué se priorizó X, \
+cómo funciona la solución de IA propuesta), responde en texto sin usar tools.
 
 Después de aplicar tools, confirma en una sola frase qué cambió. No enumeres los \
 pasos resultantes — el canvas ya los muestra.
 
 Reglas duras:
-- El roadmap mantiene la regla de cadena lineal: problem → s1 → s2 → ... Sin ramas.
-- Exactamente UN nodo `problem`. No lo elimines (usa `update_problem` para editarlo).
-- Cuando agregues nodos, usa IDs nuevos cortos (s4, s5, ...). Si dudas del próximo \
-  número libre, mira los IDs existentes en el snapshot.
-- Idioma: español (LATAM). Tono ejecutivo, denso, sin jerga vacía. Verbos accionables.
-- No inventes datos. Si el usuario pide algo que no es trazable al dossier, las \
-  respuestas o los insights, pregunta en lugar de inventar.
+- El roadmap mantiene la regla de cadena lineal: problem → s1 → s2 → ... → result.
+- Exactamente UN nodo `problem` y UN nodo `result`. No los elimines.
+- Todos los pasos intermedios son `step` — implementaciones concretas de IA.
+- Cuando agregues nodos, usa IDs nuevos cortos (s4, s5, ...).
+- Idioma: español (LATAM). Tono ejecutivo, sin jerga vacía. Verbos accionables.
+- No inventes datos. Si el usuario pide algo no trazable al dossier o insights, pregunta.
 
 Contexto de la sesión:
 

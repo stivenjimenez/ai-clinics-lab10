@@ -1,4 +1,4 @@
-export type RoadmapNodeType = "problem" | "action" | "milestone";
+export type RoadmapNodeType = "problem" | "step" | "result";
 
 export type RoadmapNodeData = {
   title: string;
@@ -14,8 +14,8 @@ export type RoadmapNode = {
 
 export const NODE_TYPE_LABEL: Record<RoadmapNodeType, string> = {
   problem: "Problema",
-  action: "Acción",
-  milestone: "Hito",
+  step: "Paso",
+  result: "Resultado",
 };
 
 export type RoadmapEdge = {

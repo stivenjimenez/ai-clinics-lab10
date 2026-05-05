@@ -16,7 +16,13 @@ import type { RoadmapPayload } from "@/lib/roadmap-types";
 
 import styles from "./roadmap-workspace.module.css";
 
-export function RoadmapWorkspace({ sessionId }: { sessionId: string }) {
+export function RoadmapWorkspace({
+  sessionId,
+  companyName,
+}: {
+  sessionId: string;
+  companyName?: string;
+}) {
   const { data: roadmap, error, mutate } = useRoadmap(sessionId);
   const notFound = error instanceof ApiError && error.status === 404;
   const [busy, setBusy] = useState(false);
@@ -105,13 +111,7 @@ export function RoadmapWorkspace({ sessionId }: { sessionId: string }) {
             strokeWidth={2.25}
             aria-hidden
           />
-          <div>
-            <strong>Generando roadmap…</strong>
-            <p>
-              Estamos armando los pasos a partir del dossier, las respuestas y
-              los insights. Suele tardar 30-60 segundos.
-            </p>
-          </div>
+          <strong>Generando roadmap…</strong>
         </div>
       );
     }
@@ -139,35 +139,41 @@ export function RoadmapWorkspace({ sessionId }: { sessionId: string }) {
   const chatReady = !!payload && !isGenerating;
 
   return (
-    <div className={styles.workspace}>
-      <aside className={styles.chatColumn}>
-        <ChatPanel
-          sessionId={sessionId}
-          enabled={chatReady}
-          onToolCall={applyToolCall}
-        />
-      </aside>
-      <section className={styles.canvasColumn}>
-        <div className={styles.toolbar}>
-          <button
-            type="button"
-            className={styles.regen}
-            onClick={regenerate}
-            disabled={isGenerating}
-            title={
-              isGenerating ? "Generación en curso" : "Volver a generar el roadmap"
-            }
-          >
-            {isGenerating ? (
-              <Loader2 size={14} strokeWidth={2.25} className={styles.spinner} />
-            ) : (
-              <RotateCw size={14} strokeWidth={2.25} />
-            )}
-            Regenerar
-          </button>
-        </div>
-        <div className={styles.canvasWrap}>{canvasNode}</div>
-      </section>
+    <div className={styles.root}>
+      <div className={styles.pageHeader}>
+        <header className={styles.header}>
+          <span className={styles.eyebrow}>Roadmap</span>
+          <h1 className={styles.title}>{companyName}</h1>
+        </header>
+        <button
+          type="button"
+          className={styles.regen}
+          onClick={regenerate}
+          disabled={isGenerating}
+          title={
+            isGenerating ? "Generación en curso" : "Volver a generar el roadmap"
+          }
+        >
+          {isGenerating ? (
+            <Loader2 size={14} strokeWidth={2.25} className={styles.spinner} />
+          ) : (
+            <RotateCw size={14} strokeWidth={2.25} />
+          )}
+          Regenerar
+        </button>
+      </div>
+      <div className={styles.workspace}>
+        <aside className={styles.chatColumn}>
+          <ChatPanel
+            sessionId={sessionId}
+            enabled={chatReady}
+            onToolCall={applyToolCall}
+          />
+        </aside>
+        <section className={styles.canvasColumn}>
+          <div className={styles.canvasWrap}>{canvasNode}</div>
+        </section>
+      </div>
     </div>
   );
 }

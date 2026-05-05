@@ -156,8 +156,50 @@
 
 .regenerateRow {
   display: flex;
+  align-items: center;
   justify-content: flex-end;
-  margin-top: 12px;
+  margin-top: 4px;
+}
+
+.tabsRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.continueButton {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 22px;
+  border-radius: 999px;
+  background: var(--foreground);
+  color: var(--background);
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: -0.005em;
+  border: 1px solid var(--foreground);
+  cursor: pointer;
+  transition: opacity 120ms ease;
+}
+
+.continueButton:hover:not(:disabled) {
+  opacity: 0.88;
+}
+
+.continueButton:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.spinnerInline {
+  animation: spin 800ms linear infinite;
+}
+
+.insightsCta {
+  display: flex;
+  justify-content: flex-end;
 }
 
 .regenerateButton {

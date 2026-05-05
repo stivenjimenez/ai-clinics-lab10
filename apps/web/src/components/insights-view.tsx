@@ -1,31 +1,33 @@
 "use client";
 
-import { ArrowRight, Loader2, RotateCw } from "lucide-react";
+import { Loader2, RotateCw } from "lucide-react";
 import { useState } from "react";
 
-import { generateInsight, useInsight, useRoadmap } from "@/lib/api";
+import { generateInsight, useInsight } from "@/lib/api";
 import {
   ADOPTION_LABELS,
-  IMPACT_EFFORT_LABELS,
+  OPPORTUNITY_CATEGORY_LABELS,
   type AdoptionLevel,
   type InsightPayload,
-  type Roadmap,
 } from "@/lib/types";
 
 import styles from "./insights-view.module.css";
 
-export function InsightsView({
-  sessionId,
-  onOpenRoadmap,
-}: {
-  sessionId: string;
-  onOpenRoadmap: () => void;
-}) {
+export function InsightsView({ sessionId }: { sessionId: string }) {
   const { data: insight, error } = useInsight(sessionId);
-  const { data: roadmap } = useRoadmap(sessionId);
-  const [retrying, setRetrying] = useState(false);
+  const [busy, setBusy] = useState(false);
 
   const notFound = isNotFound(error);
+
+  async function handleRegenerate() {
+    if (busy) return;
+    setBusy(true);
+    try {
+      await generateInsight(sessionId);
+    } finally {
+      setBusy(false);
+    }
+  }
 
   if (!insight && !notFound && !error) {
     return <InsightsSkeleton />;
@@ -45,27 +47,12 @@ export function InsightsView({
     return (
       <div className={styles.statusBlock}>
         <Loader2 className={styles.spinner} size={22} strokeWidth={2.25} aria-hidden />
-        <div>
-          <strong>Generando insights…</strong>
-          <p>
-            Estamos sintetizando dolor, oportunidades y recomendaciones a partir
-            del research y las respuestas. Suele tardar 20-40 segundos.
-          </p>
-        </div>
+        <strong>Generando insights…</strong>
       </div>
     );
   }
 
   if (insight?.status === "failed") {
-    async function retry() {
-      if (retrying) return;
-      setRetrying(true);
-      try {
-        await generateInsight(sessionId);
-      } finally {
-        setRetrying(false);
-      }
-    }
     return (
       <div className={styles.errorBox}>
         <strong>No pudimos generar los insights.</strong>
@@ -73,10 +60,10 @@ export function InsightsView({
         <button
           type="button"
           className={styles.retry}
-          onClick={retry}
-          disabled={retrying}
+          onClick={handleRegenerate}
+          disabled={busy}
         >
-          {retrying ? (
+          {busy ? (
             <Loader2 size={14} strokeWidth={2.25} className={styles.spinner} />
           ) : (
             <RotateCw size={14} strokeWidth={2.25} />
@@ -91,8 +78,8 @@ export function InsightsView({
     return (
       <InsightsContent
         payload={insight.payload}
-        roadmap={roadmap}
-        onOpenRoadmap={onOpenRoadmap}
+        onRegenerate={handleRegenerate}
+        regenerating={busy}
       />
     );
   }
@@ -102,31 +89,15 @@ export function InsightsView({
 
 function InsightsContent({
   payload,
-  roadmap,
-  onOpenRoadmap,
+  onRegenerate,
+  regenerating,
 }: {
   payload: InsightPayload;
-  roadmap: Roadmap | undefined;
-  onOpenRoadmap: () => void;
+  onRegenerate: () => void;
+  regenerating: boolean;
 }) {
-  const hasRoadmap = Boolean(roadmap);
-  const ctaLabel = hasRoadmap ? "Continuar sesión" : "Crear roadmap";
-  const cta = (
-    <div className={styles.cta}>
-      <button
-        type="button"
-        onClick={onOpenRoadmap}
-        className={styles.ctaButton}
-      >
-        {ctaLabel}
-        <ArrowRight size={16} strokeWidth={2.25} />
-      </button>
-    </div>
-  );
   return (
     <div className={styles.wrapper}>
-      {cta}
-
       <section className={styles.summary}>
         <span className={styles.eyebrow}>Resumen ejecutivo</span>
         <p>{payload.executive_summary}</p>
@@ -144,42 +115,37 @@ function InsightsContent({
       </div>
 
       <section className={styles.section}>
-        <h3 className={styles.sectionTitle}>Oportunidades detectadas</h3>
+        <h3 className={styles.sectionTitle}>Oportunidades con IA</h3>
         <div className={styles.opportunities}>
-          {payload.opportunities.map((op, i) => (
+          {payload.opportunities.slice(0, 3).map((op, i) => (
             <article key={i} className={styles.opportunity}>
+              {op.category && (
+                <span className={styles.opportunityCategory}>
+                  {OPPORTUNITY_CATEGORY_LABELS[op.category] ?? op.category}
+                </span>
+              )}
               <h4 className={styles.opportunityTitle}>{op.title}</h4>
               <p className={styles.opportunityDesc}>{op.description}</p>
-              <div className={styles.tags}>
-                <span className={styles.tag}>
-                  Impacto · <strong>{IMPACT_EFFORT_LABELS[op.impact]}</strong>
-                </span>
-                <span className={styles.tag}>
-                  Esfuerzo · <strong>{IMPACT_EFFORT_LABELS[op.effort]}</strong>
-                </span>
-              </div>
             </article>
           ))}
         </div>
       </section>
 
-      <section className={styles.section}>
-        <h3 className={styles.sectionTitle}>Recomendaciones iniciales</h3>
-        <ol className={styles.recsList}>
-          {[...payload.initial_recommendations]
-            .sort((a, b) => a.order - b.order)
-            .map((rec) => (
-              <li key={rec.order} className={styles.recItem}>
-                <span className={styles.recOrder}>
-                  {rec.order.toString().padStart(2, "0")}
-                </span>
-                <p className={styles.recText}>{rec.text}</p>
-              </li>
-            ))}
-        </ol>
-      </section>
-
-      {cta}
+      <div className={styles.regenRow}>
+        <button
+          type="button"
+          className={styles.regenBtn}
+          onClick={onRegenerate}
+          disabled={regenerating}
+        >
+          {regenerating ? (
+            <Loader2 size={14} strokeWidth={2.25} className={styles.spinner} />
+          ) : (
+            <RotateCw size={14} strokeWidth={2.25} />
+          )}
+          {regenerating ? "Regenerando…" : "Regenerar insights"}
+        </button>
+      </div>
     </div>
   );
 }

@@ -12,20 +12,11 @@ import type { Research } from "@/lib/types";
 
 import styles from "./page.module.css";
 
-type FilterKey =
-  | "all"
-  | "pending"
-  | "ready"
-  | "draft"
-  | "in_session"
-  | "with_roadmap";
+type FilterKey = "all" | "pending" | "with_roadmap";
 
 const FILTERS: { key: FilterKey; label: string }[] = [
   { key: "all", label: "Todos" },
   { key: "pending", label: "Pendientes" },
-  { key: "ready", label: "Completados" },
-  { key: "draft", label: "Draft" },
-  { key: "in_session", label: "En sesión" },
   { key: "with_roadmap", label: "Con roadmap" },
 ];
 
@@ -33,14 +24,8 @@ function applyFilter(rows: Research[], key: FilterKey, search: string) {
   let out = rows;
   if (key === "pending") {
     out = out.filter((r) => r.status === "pending" || r.status === "researching");
-  } else if (key === "ready") {
-    out = out.filter((r) => r.status === "ready");
-  } else if (key === "draft") {
-    // En esta etapa, todos los ready tienen una sesión en draft. Cuando exista
-    // estado real de sesión, ajustamos esta lógica.
-    out = out.filter((r) => r.status === "ready");
-  } else if (key === "in_session" || key === "with_roadmap") {
-    out = []; // por ahora sin datos reales — etapas posteriores
+  } else if (key === "with_roadmap") {
+    out = out.filter((r) => r.has_roadmap);
   }
 
   const q = search.trim().toLowerCase();
@@ -71,16 +56,11 @@ export default function HomePage() {
   const all = rows ?? [];
   const filtered = useMemo(() => applyFilter(all, filter, search), [all, filter, search]);
 
-  const counts = useMemo(() => {
-    return {
-      all: all.length,
-      pending: all.filter((r) => r.status === "pending" || r.status === "researching").length,
-      ready: all.filter((r) => r.status === "ready").length,
-      draft: all.filter((r) => r.status === "ready").length,
-      in_session: 0,
-      with_roadmap: 0,
-    } satisfies Record<FilterKey, number>;
-  }, [all]);
+  const counts = useMemo(() => ({
+    all: all.length,
+    pending: all.filter((r) => r.status === "pending" || r.status === "researching").length,
+    with_roadmap: all.filter((r) => r.has_roadmap).length,
+  } satisfies Record<FilterKey, number>), [all]);
 
   const newToday = all.filter((r) => {
     const d = new Date(r.created_at);
@@ -100,7 +80,7 @@ export default function HomePage() {
 
         <section className={styles.kpis}>
           <KpiCard value={counts.all} label="Research totales" hint={`+${newToday} hoy`} />
-          <KpiCard value={counts.draft} label="Sesiones en draft" hint="Listas para arrancar" />
+          <KpiCard value={counts.all - counts.pending} label="Research completados" hint="Listos para sesión" />
           <KpiCard value={counts.with_roadmap} label="Roadmaps generados" hint="Hoy" />
         </section>
 

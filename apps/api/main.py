@@ -42,17 +42,29 @@ ResearchStatus = Literal["pending", "researching", "ready", "failed"]
 # Lo usamos solo para humanizar los question_id al armar el prompt de insights;
 # las preguntas siguen siendo la fuente de verdad en el frontend.
 QUESTION_LABELS: dict[str, dict[str, str]] = {
-    "pain_point": {
-        "title": "Dolor principal",
-        "prompt": "¿Cuál es el problema que más les está costando dinero o tiempo hoy?",
+    "pain_quantified": {
+        "title": "El dolor en números",
+        "prompt": "¿Cuánto tiempo o dinero está consumiendo ese problema hoy?",
     },
-    "ai_focus_area": {
-        "title": "Área de exploración con IA",
-        "prompt": "¿Dónde quieren empezar a aplicar IA primero?",
+    "current_process": {
+        "title": "Cómo se hace hoy",
+        "prompt": "¿Cómo resuelven ese problema hoy paso a paso? ¿Quién lo hace, con qué herramientas y dónde vive la información?",
+    },
+    "data_and_systems": {
+        "title": "Datos y sistemas disponibles",
+        "prompt": "¿Qué datos tienen disponibles sobre ese proceso? ¿Están digitalizados?",
+    },
+    "tools_and_access": {
+        "title": "Herramientas de IA disponibles",
+        "prompt": "¿Qué herramientas de IA o automatización ya tienen licenciadas o en uso? ¿El equipo tiene acceso hoy sin gestiones adicionales?",
+    },
+    "prior_attempts": {
+        "title": "Intentos previos",
+        "prompt": "¿Ya intentaron resolver esto con tecnología o IA antes? ¿Qué frenó el avance?",
     },
     "success_metric": {
-        "title": "Cómo se mide el éxito",
-        "prompt": "¿Qué métrica concreta tendría que moverse para que esto valga la pena?",
+        "title": "Métrica de éxito en 30 días",
+        "prompt": "¿Qué número concreto tendría que moverse en 30 días para que el equipo diga 'esto funcionó'? ¿Quién puede aprobarlo?",
     },
 }
 
@@ -129,13 +141,25 @@ def list_research(
     status: ResearchStatus | None = Query(default=None),
     search: str | None = Query(default=None),
 ):
-    query = supabase.table("research").select("*").order("created_at", desc=True)
+    query = (
+        supabase.table("research")
+        .select("*, sessions(id, form_answers(question_id), insights(status), roadmaps(status))")
+        .order("created_at", desc=True)
+    )
     if status:
         query = query.eq("status", status)
     if search:
         query = query.ilike("company_name", f"%{search}%")
     res = query.execute()
-    return res.data
+    rows = []
+    for r in res.data:
+        sessions = r.pop("sessions", None) or []
+        s = sessions[0] if sessions else {}
+        has_answers = len(s.get("form_answers") or []) > 0
+        has_insight = (s.get("insights") or {}).get("status") == "ready"
+        has_roadmap = (s.get("roadmaps") or {}).get("status") == "ready"
+        rows.append({**r, "has_answers": has_answers, "has_insight": has_insight, "has_roadmap": has_roadmap})
+    return rows
 
 
 @app.get("/research/{research_id}")

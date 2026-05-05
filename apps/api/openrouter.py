@@ -47,17 +47,17 @@ DOSSIER_JSON_SCHEMA: dict[str, Any] = {
 SYSTEM_PROMPT = """Eres un analista de Lab10 investigando una empresa antes de una sesión \
 de diagnóstico de IA de 30 minutos durante el AI Summit LATAM.
 
-Tu tarea en este paso es ÚNICA: escribir un resumen factual de la empresa que sirva \
-como insumo para preguntas posteriores. NO propongas dolores, oportunidades, ni \
-recomendaciones — eso lo descubrimos en la sesión con el ejecutivo.
+Tu tarea: escribir un resumen factual de la empresa que sirva como contexto para \
+identificar cómo la IA puede resolver sus principales problemas de negocio.
 
 Reglas:
 - Solo información encontrable en internet (sitio, LinkedIn, prensa, etc.). Cuando \
   uses búsqueda web, úsala para encontrar datos reales y recientes.
 - Cubre: a qué se dedica, productos/servicios principales, mercado/geografía, \
-  tamaño aproximado si es público, datos diferenciales o de contexto que ayuden a \
-  conectar la conversación.
-- Si un dato no se puede confirmar, omítelo. No inventes. No supongas dolores.
+  tamaño aproximado si es público, modelo de negocio (cómo genera dinero), y \
+  procesos operativos clave donde la IA podría tener impacto (ventas, operaciones, \
+  atención al cliente, logística, datos, etc.).
+- Si un dato no se puede confirmar, omítelo. No inventes.
 - Formato: texto en prosa, 4–8 frases, denso y útil. Sin listas ni bullets.
 - Idioma: español (LATAM).
 """
@@ -147,15 +147,14 @@ INSIGHTS_JSON_SCHEMA: dict[str, Any] = {
             "pain_point",
             "ai_adoption",
             "opportunities",
-            "initial_recommendations",
         ],
         "properties": {
             "executive_summary": {
                 "type": "string",
                 "description": (
                     "2-3 frases que sinteticen el momento de la empresa frente a IA: "
-                    "qué tienen, qué les falta y qué primer paso es razonable. Tono "
-                    "ejecutivo, sin jerga, en español (LATAM)."
+                    "qué tienen, qué les falta y qué tipo de solución de IA es más "
+                    "adecuada para su problema. Tono ejecutivo, sin jerga, en español (LATAM)."
                 ),
             },
             "pain_point": {
@@ -182,50 +181,38 @@ INSIGHTS_JSON_SCHEMA: dict[str, Any] = {
             },
             "opportunities": {
                 "type": "array",
+                "description": (
+                    "Exactamente 3 oportunidades. Cada una corresponde a una categoría "
+                    "distinta de aplicación de IA: contenido, agentes, o software con IA. "
+                    "Deben aparecer en ese orden."
+                ),
                 "items": {
                     "type": "object",
                     "additionalProperties": False,
-                    "required": ["title", "description", "impact", "effort"],
+                    "required": ["category", "title", "description"],
                     "properties": {
+                        "category": {
+                            "type": "string",
+                            "enum": ["contenido", "agentes", "software"],
+                            "description": (
+                                "'contenido': IA que genera o optimiza texto, imágenes, "
+                                "copy, fichas, reportes. "
+                                "'agentes': bots o automatizaciones que ejecutan tareas "
+                                "repetitivas o responden a eventos (Make, n8n, LLM-agent). "
+                                "'software': modelos predictivos, recomendadores, "
+                                "clasificadores — soluciones más técnicas que toman >1 mes."
+                            ),
+                        },
                         "title": {
                             "type": "string",
-                            "description": "Nombre corto de la oportunidad (≤ 8 palabras), en español.",
+                            "description": "Nombre corto de la solución (≤ 8 palabras), en español.",
                         },
                         "description": {
                             "type": "string",
                             "description": (
-                                "1-2 frases que conecten la oportunidad con el dolor "
-                                "y/o el contexto de la empresa. En español."
-                            ),
-                        },
-                        "impact": {
-                            "type": "string",
-                            "enum": ["high", "medium", "low"],
-                        },
-                        "effort": {
-                            "type": "string",
-                            "enum": ["high", "medium", "low"],
-                        },
-                    },
-                },
-            },
-            "initial_recommendations": {
-                "type": "array",
-                "items": {
-                    "type": "object",
-                    "additionalProperties": False,
-                    "required": ["order", "text"],
-                    "properties": {
-                        "order": {
-                            "type": "integer",
-                            "description": "Posición 1..N en la secuencia de recomendaciones.",
-                        },
-                        "text": {
-                            "type": "string",
-                            "description": (
-                                "Recomendación accionable, en una frase, en español. "
-                                "Sin verbos vagos ('explorar', 'considerar'); preferir "
-                                "'definir', 'medir', 'piloto de'."
+                                "1-2 frases concretas: qué sistema de IA resuelve qué "
+                                "parte del proceso, usando los datos y herramientas que "
+                                "la empresa ya tiene. En español."
                             ),
                         },
                     },
@@ -236,31 +223,51 @@ INSIGHTS_JSON_SCHEMA: dict[str, Any] = {
 }
 
 
-INSIGHTS_SYSTEM_PROMPT = """Eres un consultor senior de Lab10 cerrando una sesión de diagnóstico de IA \
-de 30 minutos durante el AI Summit LATAM. Acabas de leer:
+INSIGHTS_SYSTEM_PROMPT = """Eres un consultor senior de Lab10 cerrando una sesión de diagnóstico \
+de IA de 30 minutos durante el AI Summit LATAM.
 
-1. El dossier factual de la empresa (qué hace, mercado, productos).
-2. Las respuestas del ejecutivo a 3 preguntas: dolor principal, área donde quieren \
-   empezar con IA, y métrica de éxito.
+Tienes:
+1. El dossier factual de la empresa (qué hace, mercado, productos, procesos clave).
+2. Las respuestas del ejecutivo: cuánto cuesta el dolor, cómo lo resuelven hoy paso a paso, \
+   qué datos tienen disponibles, qué herramientas de IA ya tienen acceso, intentos previos \
+   y la métrica que tendría que moverse en 30 días.
 
-Tu tarea: producir un objeto JSON con insights iniciales que el facilitador validará \
-con el ejecutivo en vivo. NO es el entregable final; es insumo para una conversación.
+Tu tarea: identificar cómo la IA puede resolver el problema de esta empresa, clasificando \
+las oportunidades en las 3 formas en que la IA se aplica al trabajo:
+
+# Las 3 categorías de oportunidad (una por cada campo de `opportunities`):
+
+**1. CONTENIDO** (`category: "contenido"`)
+IA que genera, optimiza o personaliza texto, imágenes, copy, fichas de producto, \
+reportes, descripciones, guiones. Ejemplos: optimizar fichas en Rappi con ChatGPT, \
+generar guiones de venta personalizados, crear reportes automáticos desde datos del CRM.
+→ Implementable en días o semanas con las herramientas que ya tienen.
+
+**2. AGENTES** (`category: "agentes"`)
+Bots o automatizaciones que ejecutan tareas repetitivas, responden a eventos o \
+conectan sistemas. Ejemplos: agente que responde tickets de soporte, flujo en Make \
+que detecta clientes inactivos y envía WhatsApp personalizado, bot que califica leads.
+→ Implementable en 1-4 semanas usando Make, n8n, APIs de LLM.
+
+**3. SOFTWARE CON IA** (`category: "software"`)
+Modelos predictivos, recomendadores, clasificadores, sistemas de scoring integrados \
+al producto o proceso core. Ejemplos: modelo de recomendación de upsell en el POS, \
+predictor de churn, clasificador de documentos. \
+→ Estas soluciones toman más de 1 mes y requieren desarrollo técnico.
+IMPORTANTE: incluir siempre esta categoría aunque sea >1 mes — es el horizonte de largo \
+plazo de la empresa.
+
+# Qué oportunidad se convierte en el roadmap de 30 días:
+El roadmap que se genera después usará la oportunidad de AGENTES o CONTENIDO \
+(la más factible en 30 días) como base del plan de implementación.
 
 Reglas duras:
-- Conecta SIEMPRE las oportunidades y recomendaciones con el dolor y/o las respuestas. \
-  Nada genérico tipo "implementar IA para mejorar procesos".
-- Si una respuesta menciona una métrica concreta (NPS, tickets, costo, tiempo), úsala \
-  textualmente en `pain_point` o `executive_summary`.
-- No inventes datos que no estén en el dossier o las respuestas. Si algo no está, no \
-  lo afirmes.
-- Idioma de los VALORES: español (LATAM). Tono ejecutivo, denso, sin jerga vacía. Las \
-  CLAVES del JSON ya vienen fijadas por el schema en inglés; no las traduzcas.
-- Recomendaciones: verbos accionables ("definir KPIs", "lanzar piloto de…", "medir…"). \
-  Evita "explorar", "considerar", "evaluar la posibilidad de".
-- Cantidades: 3 a 5 oportunidades, 3 a 5 recomendaciones. Numera las recomendaciones \
-  desde 1 en `order`, sin saltos.
-- Enums `impact` y `effort` usan los valores en inglés definidos por el schema \
-  (`high`, `medium`, `low`).
+- Exactamente 3 oportunidades, una por categoría, en este orden: contenido → agentes → software.
+- Cada oportunidad nombra la tecnología concreta (LLM, Make, clasificador, etc.) y \
+  el proceso específico que resuelve, usando los datos y herramientas que la empresa YA tiene.
+- Si una respuesta menciona una métrica concreta, úsala en `pain_point` o `executive_summary`.
+- No inventes datos que no estén en el dossier o las respuestas.
+- Idioma de los VALORES: español (LATAM). Tono ejecutivo, denso, sin jerga vacía.
 
 {rubric}
 """.replace("{rubric}", ADOPTION_RUBRIC)
@@ -346,9 +353,10 @@ ROADMAP_JSON_SCHEMA: dict[str, Any] = {
             "nodes": {
                 "type": "array",
                 "description": (
-                    "Secuencia lineal de checkpoints. Exactamente UN nodo "
-                    "type='problem' al inicio. Luego entre 4 y 7 nodos "
-                    "alternando 'action' y 'milestone'."
+                    "Secuencia lineal del plan de implementación de IA. "
+                    "Exactamente UN nodo type='problem' al inicio. "
+                    "Luego entre 3 y 6 nodos type='step'. "
+                    "Exactamente UN nodo type='result' al final."
                 ),
                 "items": {
                     "type": "object",
@@ -358,17 +366,18 @@ ROADMAP_JSON_SCHEMA: dict[str, Any] = {
                         "id": {
                             "type": "string",
                             "description": (
-                                "Slug corto y único dentro del roadmap, p. ej. "
-                                "'problem', 's1', 's2', etc."
+                                "Slug corto y único dentro del roadmap: "
+                                "'problem' para el problema, 's1', 's2', ... "
+                                "para los pasos, 'result' para el nodo final."
                             ),
                         },
                         "type": {
                             "type": "string",
-                            "enum": ["problem", "action", "milestone"],
+                            "enum": ["problem", "step", "result"],
                             "description": (
-                                "'problem': el dolor a resolver, 1 solo, sin "
-                                "edges entrantes. 'action': paso intermedio. "
-                                "'milestone': checkpoint donde se valida progreso."
+                                "'problem': el dolor de negocio a resolver, 1 solo. "
+                                "'step': paso de implementación de IA concreto y ejecutable. "
+                                "'result': nodo final único con el impacto medible logrado."
                             ),
                         },
                         "data": {
@@ -431,36 +440,49 @@ ROADMAP_JSON_SCHEMA: dict[str, Any] = {
 }
 
 
-ROADMAP_SYSTEM_PROMPT = """Eres un consultor senior de Lab10. Acabas de cerrar una \
-sesión de diagnóstico de IA con un ejecutivo y tienes:
+ROADMAP_SYSTEM_PROMPT = """Eres un consultor senior de Lab10 que acaba de cerrar \
+una sesión de diagnóstico con un ejecutivo. Tu trabajo es diseñar un plan de \
+implementación de IA de 30 días para resolver su problema.
 
-1. Un dossier factual de la empresa.
-2. Las respuestas del ejecutivo a 3 preguntas (dolor, área de IA, métrica).
-3. Un objeto de insights ya generado (resumen ejecutivo, dolor principal, nivel de \
-   adopción, oportunidades, recomendaciones iniciales).
+Tienes:
+1. El dossier de la empresa (operaciones, mercado, modelo de negocio).
+2. Las respuestas del ejecutivo (dolor cuantificado, proceso actual, datos disponibles, \
+   herramientas de IA que ya tienen, intentos previos, métrica en 30 días).
+3. Los insights con: dolor principal, nivel de adopción, y 3 oportunidades clasificadas \
+   en contenido, agentes y software.
 
-Tu tarea: producir un **roadmap lineal de checkpoints** que conecte el dolor con un \
-plan paso-a-paso. Devuelve un JSON con `nodes` y `edges`.
+El roadmap debe implementar la oportunidad más factible en 30 días — \
+típicamente la de `agentes` o `contenido` de los insights.
+
+ESTRUCTURA OBLIGATORIA del JSON (`nodes` y `edges`):
+- 1 nodo `problem`: el dolor con el número concreto del diagnóstico.
+- 4 nodos `step`: uno por semana del mes. Cada uno lleva el prefijo "Semana N —" en el título.
+- 1 nodo `result`: la solución sintetizada — describe el proceso YA transformado con IA.
+
+LOS 4 STEPS — una semana por paso:
+- **Semana 1 —** preparación: exportar datos, limpiar, estructurar, acceder a las APIs.
+- **Semana 2 —** construcción: crear el prompt, configurar el flujo en Make/n8n, \
+  conectar la herramienta de IA a los datos.
+- **Semana 3 —** prueba: piloto controlado con datos reales, validar salida, ajustar.
+- **Semana 4 —** despliegue: activar en el proceso real, conectar al POS/CRM/WhatsApp, \
+  instrumentar la métrica.
+
+EL NODO `result`:
+Sintetiza la solución implementada en 1-2 frases. No es un paso más — es el estado final:
+el proceso transformado con IA funcionando y la métrica del ejecutivo en movimiento.
+Ejemplo: "Agente de sugerencias activo en el POS — upsell pasa del 12% al 20%."
 
 REGLAS DURAS:
-- Exactamente UN nodo `type='problem'` al inicio. Su contenido sintetiza el `pain_point` \
-  del insight en una frase corta y específica (sin generalidades tipo "necesitan adoptar IA").
-- Después del problem, entre 4 y 7 nodos alternando `action` y `milestone`. Acción = \
-  algo que se hace. Milestone = punto donde se valida que el paso anterior funcionó \
-  ("piloto evaluado", "modelo en producción", "dashboard adoptado").
-- Cadena lineal: el primer paso tiene como `source` al nodo problem; cada paso siguiente \
-  tiene como `source` al paso anterior. Sin ramas. Sin ciclos. Sin volver atrás.
-- Cada nodo: `title` ≤ 9 palabras, `description` una sola frase. Sin jerga vacía. \
-  Lenguaje del ejecutivo, no del consultor.
-- Conecta SIEMPRE el plan con las oportunidades y recomendaciones del insight: cada \
-  acción/milestone debe ser trazable a algo concreto del insight. Si no, no la pongas.
-- IDs: usa 'problem' para el problema y 's1', 's2', 's3', ... para los pasos en orden. \
-  IDs de edges: 'e0' del problem al primer paso, 'e1' del s1 al s2, etc.
-- Posiciones: pon `{x: 0, y: 0}` en todos los nodos. El frontend recalcula el layout.
-- Idioma de los VALORES de texto: español (LATAM). Las CLAVES están fijadas por el \
-  schema, no las traduzcas.
-- No inventes datos que no estén en el dossier, las respuestas o los insights. Si \
-  algo no está, no lo afirmes.
+- Títulos de `step`: empiezan con "Semana 1 —", "Semana 2 —", etc. ≤ 9 palabras total.
+- Cada `step` nombra la herramienta concreta que el ejecutivo ya tiene. \
+  PROHIBIDO: explorar, evaluar, considerar.
+- `result` sintetiza la solución + la métrica cumplida. Tono de logro, no de tarea.
+- Cadena lineal: problem → s1 → s2 → s3 → s4 → result. Sin ramas. Sin ciclos.
+- IDs: 'problem', 's1', 's2', 's3', 's4', 'result'. \
+  Edges: 'e0' (problem→s1), 'e1' (s1→s2), 'e2' (s2→s3), 'e3' (s3→s4), 'e4' (s4→result).
+- Posiciones: `{x: 0, y: 0}` en todos. El frontend recalcula el layout.
+- Idioma de los VALORES: español (LATAM). Las CLAVES están fijadas por el schema.
+- No inventes datos que no estén en el dossier, respuestas o insights.
 
 Devuelve únicamente el JSON con la estructura del schema. Sin texto extra.
 """

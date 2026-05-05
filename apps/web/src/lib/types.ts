@@ -13,6 +13,9 @@ export type Research = {
   dossier: Dossier | null;
   status: ResearchStatus;
   error_message: string | null;
+  has_answers: boolean;
+  has_insight: boolean;
+  has_roadmap: boolean;
   created_at: string;
   updated_at: string;
 };
@@ -49,24 +52,18 @@ export const ADOPTION_LABELS: Record<AdoptionLevel, string> = {
   5: "IA-NATIVO",
 };
 
-export type ImpactEffort = "high" | "medium" | "low";
+export type OpportunityCategory = "contenido" | "agentes" | "software";
 
-export const IMPACT_EFFORT_LABELS: Record<ImpactEffort, string> = {
-  high: "alto",
-  medium: "medio",
-  low: "bajo",
+export const OPPORTUNITY_CATEGORY_LABELS: Record<OpportunityCategory, string> = {
+  contenido: "Contenido",
+  agentes: "Agentes",
+  software: "Software con IA",
 };
 
 export type InsightOpportunity = {
+  category: OpportunityCategory;
   title: string;
   description: string;
-  impact: ImpactEffort;
-  effort: ImpactEffort;
-};
-
-export type InsightRecommendation = {
-  order: number;
-  text: string;
 };
 
 export type InsightPayload = {
@@ -76,7 +73,6 @@ export type InsightPayload = {
     level: AdoptionLevel;
   };
   opportunities: InsightOpportunity[];
-  initial_recommendations: InsightRecommendation[];
 };
 
 export type InsightStatus = "generating" | "ready" | "failed";
