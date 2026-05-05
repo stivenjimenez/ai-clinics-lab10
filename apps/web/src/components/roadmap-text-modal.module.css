@@ -1,0 +1,44 @@
+.body {
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+  padding: 24px 28px;
+  overflow-y: auto;
+  height: 100%;
+}
+
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  border-top: 1px solid var(--border);
+  padding-top: 18px;
+}
+
+.section:first-child {
+  border-top: none;
+  padding-top: 0;
+}
+
+.kind {
+  letter-spacing: 0.18em;
+  font-size: 11px;
+  color: var(--foreground-muted);
+  text-transform: uppercase;
+  font-weight: 700;
+}
+
+.nodeTitle {
+  margin: 0;
+  font-size: 17px;
+  font-weight: 600;
+  letter-spacing: -0.005em;
+}
+
+.nodeDesc {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.55;
+  color: var(--foreground);
+  white-space: pre-wrap;
+}

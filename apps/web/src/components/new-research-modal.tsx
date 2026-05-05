@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, X } from "lucide-react";
 
 import {
   newResearchSchema,
@@ -87,18 +87,25 @@ export function NewResearchModal({ open, onClose }: Props) {
       }}
     >
       <div
-        className={styles.modal}
+        className={styles.drawer}
         role="dialog"
         aria-modal="true"
         aria-labelledby="new-research-title"
       >
-        <span className={styles.eyebrow}>PASO 1 · DATOS BÁSICOS</span>
-        <h2 id="new-research-title" className={styles.title}>NUEVO RESEARCH</h2>
-        <p className={styles.subtitle}>
-          Solo el nombre es obligatorio. El agente investiga industria, dolores y
-          oportunidades por su cuenta. Tomará 2–4 minutos.
-        </p>
-
+        <div className={styles.header}>
+          <div className={styles.headerText}>
+            <span className={styles.eyebrow}>PASO 1 · DATOS BÁSICOS</span>
+            <h2 id="new-research-title" className={styles.title}>NUEVO RESEARCH</h2>
+          </div>
+          <button
+            type="button"
+            className={styles.close}
+            onClick={onClose}
+            aria-label="Cerrar"
+          >
+            <X size={18} strokeWidth={2} aria-hidden />
+          </button>
+        </div>
         <form className={styles.form} onSubmit={handleSubmit(onSubmit)} noValidate>
           <div className={styles.field}>
             <label className={styles.label} htmlFor="company_name">

@@ -62,11 +62,22 @@
   text-transform: uppercase;
 }
 
+.requiredTag {
+  color: var(--accent);
+  font-weight: 600;
+}
+
 .questionTitle {
   font-size: 18px;
   font-weight: 700;
   margin: 0;
   letter-spacing: -0.01em;
+}
+
+.requiredMark {
+  color: var(--accent);
+  font-weight: 700;
+  margin-left: 2px;
 }
 
 .prompt {

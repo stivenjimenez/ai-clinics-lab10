@@ -61,7 +61,7 @@ export const OPPORTUNITY_CATEGORY_LABELS: Record<OpportunityCategory, string> = 
 };
 
 export type InsightOpportunity = {
-  category: OpportunityCategory;
+  category?: OpportunityCategory;
   title: string;
   description: string;
 };

@@ -10,9 +10,7 @@ import { InsightsView } from "@/components/insights-view";
 import { StatusBadge } from "@/components/status-badge";
 import { Tabs, type TabItem } from "@/components/tabs";
 import {
-  generateInsight,
   regenerateResearch,
-  saveAnswers,
   useAnswers,
   useInsight,
   useResearch,
@@ -161,23 +159,15 @@ export default function ResearchDetailPage({
                   <ArrowRight size={15} strokeWidth={2.25} />
                 </button>
               )}
-              {tab === "diagnostic" && session && (
-                hasInsight ? (
-                  <button
-                    type="button"
-                    className={styles.continueButton}
-                    onClick={() => setTab("insights")}
-                  >
-                    Ver insights
-                    <ArrowRight size={15} strokeWidth={2.25} />
-                  </button>
-                ) : (
-                  <ContinueToInsightsButton
-                    sessionId={session.id}
-                    answeredCount={answeredCount}
-                    onInsightStarted={() => setTab("insights")}
-                  />
-                )
+              {tab === "diagnostic" && session && hasInsight && (
+                <button
+                  type="button"
+                  className={styles.continueButton}
+                  onClick={() => setTab("insights")}
+                >
+                  Ver insights
+                  <ArrowRight size={15} strokeWidth={2.25} />
+                </button>
               )}
               {tab === "insights" && session && (
                 <button
@@ -274,45 +264,6 @@ export default function ResearchDetailPage({
         )}
       </main>
     </>
-  );
-}
-
-function ContinueToInsightsButton({
-  sessionId,
-  answeredCount,
-  onInsightStarted,
-}: {
-  sessionId: string;
-  answeredCount: number;
-  onInsightStarted: () => void;
-}) {
-  const [busy, setBusy] = useState(false);
-  const allAnswered = answeredCount === TOTAL_DIAGNOSTIC_QUESTIONS;
-
-  async function handle() {
-    if (!allAnswered || busy) return;
-    setBusy(true);
-    try {
-      await generateInsight(sessionId);
-      onInsightStarted();
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  return (
-    <button
-      type="button"
-      className={styles.continueButton}
-      onClick={handle}
-      disabled={!allAnswered || busy}
-    >
-      {busy && <Loader2 size={15} strokeWidth={2.25} className={styles.spinnerInline} />}
-      Continuar con insights
-      {!busy && <ArrowRight size={15} strokeWidth={2.25} />}
-    </button>
   );
 }
 

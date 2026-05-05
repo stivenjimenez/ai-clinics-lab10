@@ -4,7 +4,6 @@ import { useMemo, useState } from "react";
 import { Search, Plus } from "lucide-react";
 
 
-import { KpiCard } from "@/components/kpi-card";
 import { ResearchTable } from "@/components/research-table";
 import { NewResearchModal } from "@/components/new-research-modal";
 import { useResearchList } from "@/lib/api";
@@ -62,27 +61,11 @@ export default function HomePage() {
     with_roadmap: all.filter((r) => r.has_roadmap).length,
   } satisfies Record<FilterKey, number>), [all]);
 
-  const newToday = all.filter((r) => {
-    const d = new Date(r.created_at);
-    const now = new Date();
-    return (
-      d.getFullYear() === now.getFullYear() &&
-      d.getMonth() === now.getMonth() &&
-      d.getDate() === now.getDate()
-    );
-  }).length;
-
   return (
     <>
 
       <main className={styles.main}>
         <h1 className={styles.title}>Research</h1>
-
-        <section className={styles.kpis}>
-          <KpiCard value={counts.all} label="Research totales" hint={`+${newToday} hoy`} />
-          <KpiCard value={counts.all - counts.pending} label="Research completados" hint="Listos para sesión" />
-          <KpiCard value={counts.with_roadmap} label="Roadmaps generados" hint="Hoy" />
-        </section>
 
         <section className={styles.controls}>
           <div className={styles.searchWrap}>

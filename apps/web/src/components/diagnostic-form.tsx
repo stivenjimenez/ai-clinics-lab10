@@ -47,26 +47,21 @@ export function DiagnosticForm({
     [drafts],
   );
 
-  const dirty = useMemo(() => {
-    if (!hydrated) return false;
-    const persistedMap = new Map(
-      (persisted ?? []).map((a) => [a.question_id, a.answer_text]),
-    );
-    return DIAGNOSTIC_QUESTIONS.some((q) => {
-      const draft = (drafts[q.id] ?? "").trim();
-      const prev = (persistedMap.get(q.id) ?? "").trim();
-      return draft !== prev;
-    });
-  }, [drafts, persisted, hydrated]);
-
   const onAnsweredCountChangeRef = useRef(onAnsweredCountChange);
   onAnsweredCountChangeRef.current = onAnsweredCountChange;
   useEffect(() => {
     onAnsweredCountChangeRef.current?.(answeredCount);
   }, [answeredCount]);
 
-  const hasAtLeastOne = answeredCount > 0;
-  const allAnswered = answeredCount === TOTAL_DIAGNOSTIC_QUESTIONS;
+  const requiredMissing = useMemo(
+    () =>
+      DIAGNOSTIC_QUESTIONS.some(
+        (q) => q.required && !drafts[q.id]?.trim(),
+      ),
+    [drafts],
+  );
+
+  const canGenerate = answeredCount > 0 && !requiredMissing;
   const busy = saveState === "saving" || saveState === "generating";
   const hasInsight = insight?.status === "ready";
 
@@ -78,13 +73,11 @@ export function DiagnosticForm({
   }
 
   async function handleGenerate() {
-    if (!allAnswered || busy) return;
+    if (!canGenerate || busy) return;
     setErrorMsg(null);
     try {
-      if (dirty) {
-        setSaveState("saving");
-        await saveAnswers(sessionId, buildPayload());
-      }
+      setSaveState("saving");
+      await saveAnswers(sessionId, buildPayload());
       setSaveState("generating");
       await generateInsight(sessionId);
       onInsightStarted?.();
@@ -121,8 +114,14 @@ export function DiagnosticForm({
         const num = q.order.toString().padStart(2, "0");
         return (
           <div key={q.id} className={styles.questionCard}>
-            <span className={styles.eyebrow}>Pregunta {num}</span>
-            <h3 className={styles.questionTitle}>{q.title}</h3>
+            <span className={styles.eyebrow}>
+              Pregunta {num}
+              {q.required && <span className={styles.requiredTag}> · OBLIGATORIA</span>}
+            </span>
+            <h3 className={styles.questionTitle}>
+              {q.title}
+              {q.required && <span className={styles.requiredMark} aria-hidden> *</span>}
+            </h3>
             <p className={styles.prompt}>{q.prompt}</p>
             <textarea
               className={styles.textarea}
@@ -136,6 +135,39 @@ export function DiagnosticForm({
           </div>
         );
       })}
+
+      <div className={styles.actions}>
+        {errorMsg && (
+          <span className={`${styles.status} ${styles.statusError}`}>
+            {errorMsg}
+          </span>
+        )}
+        {!errorMsg && requiredMissing && !busy && (
+          <span className={styles.status}>
+            Completa las preguntas obligatorias para continuar.
+          </span>
+        )}
+        {!errorMsg && saveState === "saving" && (
+          <span className={styles.status}>Guardando respuestas…</span>
+        )}
+        {!errorMsg && saveState === "generating" && (
+          <span className={styles.status}>Generando insights…</span>
+        )}
+        <button
+          type="button"
+          className={styles.submit}
+          onClick={handleGenerate}
+          disabled={!canGenerate || busy}
+        >
+          {busy
+            ? saveState === "saving"
+              ? "Guardando…"
+              : "Generando…"
+            : hasInsight
+              ? "Regenerar insights"
+              : "Generar insights"}
+        </button>
+      </div>
     </form>
   );
 }

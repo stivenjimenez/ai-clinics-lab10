@@ -15,8 +15,8 @@ import httpx
 OPENROUTER_API_URL = "https://openrouter.ai/api/v1/chat/completions"
 
 # Modelos fijos — cambiarlos aquí cuando se quiera actualizar.
-DOSSIER_MODEL = "openai/gpt-5:online"   # usa búsqueda web para investigar la empresa
-ANALYSIS_MODEL = "openai/gpt-5"         # insights, roadmap y chat (sin búsqueda web)
+DOSSIER_MODEL = "openai/gpt-5.5:online"   # usa búsqueda web para investigar la empresa
+ANALYSIS_MODEL = "openai/gpt-5.5"         # insights, roadmap y chat (sin búsqueda web)
 
 log = logging.getLogger("ai-clinics-api")
 
@@ -182,27 +182,14 @@ INSIGHTS_JSON_SCHEMA: dict[str, Any] = {
             "opportunities": {
                 "type": "array",
                 "description": (
-                    "Exactamente 3 oportunidades. Cada una corresponde a una categoría "
-                    "distinta de aplicación de IA: contenido, agentes, o software con IA. "
-                    "Deben aparecer en ese orden."
+                    "Exactamente 3 oportunidades de aplicación de IA, en cualquier "
+                    "formato o categoría que mejor resuelva el dolor de la empresa."
                 ),
                 "items": {
                     "type": "object",
                     "additionalProperties": False,
-                    "required": ["category", "title", "description"],
+                    "required": ["title", "description"],
                     "properties": {
-                        "category": {
-                            "type": "string",
-                            "enum": ["contenido", "agentes", "software"],
-                            "description": (
-                                "'contenido': IA que genera o optimiza texto, imágenes, "
-                                "copy, fichas, reportes. "
-                                "'agentes': bots o automatizaciones que ejecutan tareas "
-                                "repetitivas o responden a eventos (Make, n8n, LLM-agent). "
-                                "'software': modelos predictivos, recomendadores, "
-                                "clasificadores — soluciones más técnicas que toman >1 mes."
-                            ),
-                        },
                         "title": {
                             "type": "string",
                             "description": "Nombre corto de la solución (≤ 8 palabras), en español.",
@@ -232,37 +219,26 @@ Tienes:
    qué datos tienen disponibles, qué herramientas de IA ya tienen acceso, intentos previos \
    y la métrica que tendría que moverse en 30 días.
 
-Tu tarea: identificar cómo la IA puede resolver el problema de esta empresa, clasificando \
-las oportunidades en las 3 formas en que la IA se aplica al trabajo:
+Tu tarea: identificar exactamente 3 oportunidades concretas de aplicación de IA \
+que resuelvan el dolor de esta empresa, usando los datos y herramientas que YA tienen.
 
-# Las 3 categorías de oportunidad (una por cada campo de `opportunities`):
+# Tipos de oportunidad que puedes usar (referencia, NO obligatorio):
+- **Contenido**: IA que genera u optimiza texto, imágenes, copy, fichas, reportes \
+  (ej. optimizar fichas en Rappi con ChatGPT, guiones de venta personalizados).
+- **Agentes**: bots o automatizaciones que ejecutan tareas repetitivas o responden a \
+  eventos (ej. flujo en Make que detecta clientes inactivos, bot que califica leads).
+- **Software con IA**: modelos predictivos, recomendadores, clasificadores integrados al \
+  producto core (ej. predictor de churn, recomendador de upsell en el POS).
 
-**1. CONTENIDO** (`category: "contenido"`)
-IA que genera, optimiza o personaliza texto, imágenes, copy, fichas de producto, \
-reportes, descripciones, guiones. Ejemplos: optimizar fichas en Rappi con ChatGPT, \
-generar guiones de venta personalizados, crear reportes automáticos desde datos del CRM.
-→ Implementable en días o semanas con las herramientas que ya tienen.
-
-**2. AGENTES** (`category: "agentes"`)
-Bots o automatizaciones que ejecutan tareas repetitivas, responden a eventos o \
-conectan sistemas. Ejemplos: agente que responde tickets de soporte, flujo en Make \
-que detecta clientes inactivos y envía WhatsApp personalizado, bot que califica leads.
-→ Implementable en 1-4 semanas usando Make, n8n, APIs de LLM.
-
-**3. SOFTWARE CON IA** (`category: "software"`)
-Modelos predictivos, recomendadores, clasificadores, sistemas de scoring integrados \
-al producto o proceso core. Ejemplos: modelo de recomendación de upsell en el POS, \
-predictor de churn, clasificador de documentos. \
-→ Estas soluciones toman más de 1 mes y requieren desarrollo técnico.
-IMPORTANTE: incluir siempre esta categoría aunque sea >1 mes — es el horizonte de largo \
-plazo de la empresa.
+No estás obligado a cubrir las 3 categorías ni a un orden específico. Elige las 3 \
+oportunidades que mejor resuelvan el dolor concreto que mencionó el ejecutivo.
 
 # Qué oportunidad se convierte en el roadmap de 30 días:
-El roadmap que se genera después usará la oportunidad de AGENTES o CONTENIDO \
-(la más factible en 30 días) como base del plan de implementación.
+El roadmap que se genera después usará la oportunidad más factible en 30 días \
+(idealmente algo tipo agente o contenido) como base del plan de implementación.
 
 Reglas duras:
-- Exactamente 3 oportunidades, una por categoría, en este orden: contenido → agentes → software.
+- Exactamente 3 oportunidades.
 - Cada oportunidad nombra la tecnología concreta (LLM, Make, clasificador, etc.) y \
   el proceso específico que resuelve, usando los datos y herramientas que la empresa YA tiene.
 - Si una respuesta menciona una métrica concreta, úsala en `pain_point` o `executive_summary`.
@@ -448,11 +424,11 @@ Tienes:
 1. El dossier de la empresa (operaciones, mercado, modelo de negocio).
 2. Las respuestas del ejecutivo (dolor cuantificado, proceso actual, datos disponibles, \
    herramientas de IA que ya tienen, intentos previos, métrica en 30 días).
-3. Los insights con: dolor principal, nivel de adopción, y 3 oportunidades clasificadas \
-   en contenido, agentes y software.
+3. Los insights con: dolor principal, nivel de adopción, y 3 oportunidades concretas \
+   de aplicación de IA.
 
-El roadmap debe implementar la oportunidad más factible en 30 días — \
-típicamente la de `agentes` o `contenido` de los insights.
+El roadmap debe implementar la oportunidad más factible en 30 días \
+(la que se pueda construir con agentes, automatización o contenido — no con software a medida).
 
 ESTRUCTURA OBLIGATORIA del JSON (`nodes` y `edges`):
 - 1 nodo `problem`: el dolor con el número concreto del diagnóstico.

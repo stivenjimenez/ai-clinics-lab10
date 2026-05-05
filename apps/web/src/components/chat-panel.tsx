@@ -155,14 +155,7 @@ export function ChatPanel({
       <div className={styles.messages}>
         {chat.messages.length === 0 && (
           <div className={styles.empty}>
-            <p>
-              Pedile al asistente que ajuste el roadmap. Por ejemplo:
-            </p>
-            <ul>
-              <li>“Agregá un paso de capacitación al equipo después del primer milestone.”</li>
-              <li>“El problema está mal redactado, hablá del NPS en vez del costo.”</li>
-              <li>“Eliminá el paso s3 y reordená los demás.”</li>
-            </ul>
+            <p>¿Qué quieres ajustar del roadmap?</p>
           </div>
         )}
 

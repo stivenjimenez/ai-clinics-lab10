@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import {
   Background,
   BackgroundVariant,
@@ -92,13 +92,8 @@ function RoadmapCanvasInner({
   const [nodes, setNodes, onNodesChange] = useNodesState<FlowNode>([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState<FlowEdge>([]);
 
-  // Mantengo refs al callback y a los edges originales para que `onNodeDragStop`
-  // no necesite ser recreado en cada render.
   const onPayloadChangeRef = useRef(onPayloadChange);
   onPayloadChangeRef.current = onPayloadChange;
-
-  const originalEdgesRef = useRef<RoadmapEdge[]>(payload.edges);
-  originalEdgesRef.current = payload.edges;
 
   useEffect(() => {
     let cancelled = false;
@@ -126,22 +121,6 @@ function RoadmapCanvasInner({
     };
   }, [payload, setNodes, setEdges]);
 
-  const handleNodeDragStop = useCallback(() => {
-    if (!onPayloadChangeRef.current) return;
-    const cb = onPayloadChangeRef.current;
-    // Reconstruyo el payload usando el estado actual de xyflow.
-    setNodes((current) => {
-      const next: RoadmapNode[] = current.map((n) => ({
-        id: n.id,
-        type: (n.type as RoadmapNodeType) ?? "step",
-        data: n.data as RoadmapNodeData,
-        position: { x: n.position.x, y: n.position.y },
-      }));
-      cb({ nodes: next, edges: originalEdgesRef.current });
-      return current;
-    });
-  }, [setNodes]);
-
   const fitViewOptions = useMemo(() => ({ padding: 0.2 }), []);
 
   return (
@@ -150,12 +129,12 @@ function RoadmapCanvasInner({
       edges={edges}
       onNodesChange={onNodesChange}
       onEdgesChange={onEdgesChange}
-      onNodeDragStop={handleNodeDragStop}
       nodeTypes={nodeTypes}
       fitView
       fitViewOptions={fitViewOptions}
-      nodesDraggable
+      nodesDraggable={false}
       nodesConnectable={false}
+      elementsSelectable={false}
       proOptions={{ hideAttribution: false }}
     >
       <Background variant={BackgroundVariant.Dots} gap={18} size={1} color="#d8d8d4" />

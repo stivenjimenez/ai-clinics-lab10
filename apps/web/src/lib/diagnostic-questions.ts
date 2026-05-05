@@ -6,16 +6,19 @@ export type DiagnosticQuestion = {
   order: number;
   title: string;
   prompt: string;
+  required?: boolean;
 };
 
 export const DIAGNOSTIC_QUESTIONS: DiagnosticQuestion[] = [
   {
     id: "pain_quantified",
     order: 1,
-    title: "El dolor en números",
+    title: "¿Qué le duele al negocio hoy?",
     prompt:
-      "¿Cuánto tiempo o dinero está consumiendo ese problema hoy? " +
-      "(ej. '4 horas/persona/día', '$30k/mes en retrabajos', '10% de clientes perdidos por demoras')",
+      "¿Cuál es el problema concreto que están viviendo y cuánto les está costando? " +
+      "Describe primero qué pasa (ej. 'tardamos demasiado en cotizar', 'perdemos clientes por demoras') " +
+      "y luego cuantifícalo si puedes (ej. '4 horas/persona/día', '$30k/mes en retrabajos', '10% de clientes perdidos').",
+    required: true,
   },
   {
     id: "current_process",
@@ -36,7 +39,7 @@ export const DIAGNOSTIC_QUESTIONS: DiagnosticQuestion[] = [
   {
     id: "tools_and_access",
     order: 4,
-    title: "Herramientas de IA disponibles",
+    title: "¿Con qué herramientas cuentan?",
     prompt:
       "¿Qué herramientas de IA o automatización ya tienen licenciadas o en uso? " +
       "(ej. ChatGPT, Copilot, Zapier, n8n, Make, APIs propias) ¿El equipo tiene acceso hoy sin gestiones adicionales?",
@@ -56,6 +59,7 @@ export const DIAGNOSTIC_QUESTIONS: DiagnosticQuestion[] = [
     prompt:
       "Si en 30 días ejecutan un primer piloto de IA en ese proceso, " +
       "¿qué número concreto tendría que moverse para que el equipo diga 'esto funcionó'? ¿Quién tiene autoridad para aprobarlo hoy?",
+    required: true,
   },
 ];
 

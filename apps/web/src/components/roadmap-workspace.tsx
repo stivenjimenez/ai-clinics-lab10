@@ -1,10 +1,15 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Loader2, RotateCw } from "lucide-react";
+import { Download, Loader2, RotateCw } from "lucide-react";
 
 import { ChatPanel } from "@/components/chat-panel";
 import { RoadmapCanvas } from "@/components/roadmap-canvas";
+import {
+  RoadmapTextView,
+  downloadRoadmapPdf,
+} from "@/components/roadmap-text-modal";
+import { Tabs } from "@/components/tabs";
 import {
   ApiError,
   generateRoadmap,
@@ -26,6 +31,7 @@ export function RoadmapWorkspace({
   const { data: roadmap, error, mutate } = useRoadmap(sessionId);
   const notFound = error instanceof ApiError && error.status === 404;
   const [busy, setBusy] = useState(false);
+  const [view, setView] = useState<"canvas" | "text">("canvas");
 
   // Estado lifted del payload — fuente de verdad mientras se está editando.
   // Se hidrata desde el roadmap del server cuando llega y luego solo lo
@@ -128,13 +134,15 @@ export function RoadmapWorkspace({
       );
     }
     if (payload) {
-      return (
+      return view === "text" ? (
+        <RoadmapTextView payload={payload} companyName={companyName} />
+      ) : (
         <RoadmapCanvas payload={payload} onPayloadChange={handlePayloadChange} />
       );
     }
     return null;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isGenerating, notFound, roadmap, payload]);
+  }, [isGenerating, notFound, roadmap, payload, view]);
 
   const chatReady = !!payload && !isGenerating;
 
@@ -145,22 +153,54 @@ export function RoadmapWorkspace({
           <span className={styles.eyebrow}>Roadmap</span>
           <h1 className={styles.title}>{companyName}</h1>
         </header>
-        <button
-          type="button"
-          className={styles.regen}
-          onClick={regenerate}
-          disabled={isGenerating}
-          title={
-            isGenerating ? "Generación en curso" : "Volver a generar el roadmap"
-          }
-        >
-          {isGenerating ? (
-            <Loader2 size={14} strokeWidth={2.25} className={styles.spinner} />
-          ) : (
-            <RotateCw size={14} strokeWidth={2.25} />
-          )}
-          Regenerar
-        </button>
+        <div className={styles.actionsBar}>
+          <Tabs
+            ariaLabel="Vista del roadmap"
+            active={view}
+            onChange={setView}
+            items={[
+              { id: "canvas", label: "Roadmap" },
+              {
+                id: "text",
+                label: "Texto",
+                disabled: !payload || isGenerating,
+                disabledReason: "Esperá a que el roadmap esté listo",
+              },
+            ]}
+          />
+          <button
+            type="button"
+            className={styles.regen}
+            onClick={() =>
+              payload && downloadRoadmapPdf(payload, companyName)
+            }
+            disabled={!payload || isGenerating}
+            title={
+              !payload || isGenerating
+                ? "Esperá a que el roadmap esté listo"
+                : "Descargar roadmap como PDF"
+            }
+          >
+            <Download size={14} strokeWidth={2.25} />
+            Descargar PDF
+          </button>
+          <button
+            type="button"
+            className={styles.regen}
+            onClick={regenerate}
+            disabled={isGenerating}
+            title={
+              isGenerating ? "Generación en curso" : "Volver a generar el roadmap"
+            }
+          >
+            {isGenerating ? (
+              <Loader2 size={14} strokeWidth={2.25} className={styles.spinner} />
+            ) : (
+              <RotateCw size={14} strokeWidth={2.25} />
+            )}
+            Regenerar
+          </button>
+        </div>
       </div>
       <div className={styles.workspace}>
         <aside className={styles.chatColumn}>
